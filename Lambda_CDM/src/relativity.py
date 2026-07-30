@@ -1,8 +1,9 @@
 import numpy as np
 from scipy.integrate import quad
-from core import hubble_parameter # Assumes core.py handles the Friedmann expansion rate H(z)
 
-# Speed of light in km/s
+from .core import hubble_parameter
+
+# Speed of light in km/s.
 C_LIGHT = 299792.458 
 
 def flrw_metric_components(a, k, r, theta):
@@ -22,7 +23,7 @@ def comoving_distance(z, H0, Om, Or, Ol):
     comoving distance (in Mpc) to an object at redshift z.
     """
     integrand = lambda z_prime: 1.0 / hubble_parameter(z_prime, H0, Om, Or, Ol)
-    integral_result, error = quad(integrand, 0, z)
+    integral_result, _error = quad(integrand, 0, z)
     return C_LIGHT * integral_result
 
 def luminosity_distance(z, H0, Om, Or, Ol):

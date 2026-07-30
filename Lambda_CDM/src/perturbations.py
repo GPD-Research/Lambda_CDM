@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.integrate import quad
-from core import hubble_parameter, H0_DEFAULT, OMEGA_M0, OMEGA_L0
+
+from .core import H0_DEFAULT, OMEGA_L0, OMEGA_M0, hubble_parameter
+
 
 def matter_density_at_z(z, Om=OMEGA_M0, Ol=OMEGA_L0):
     """

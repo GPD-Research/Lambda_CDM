@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def calculate_residuals(observed, predicted):
     """Computes the raw difference between observed data and model predictions."""
     return observed - predicted
