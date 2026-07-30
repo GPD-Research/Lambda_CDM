@@ -1,0 +1,5 @@
+observation_id,redshift_z,angular_diameter_distance_Mpc,add_error,survey_source
+1,0.32,981.2,16.5,BOSS_DR12
+2,0.57,1380.0,23.0,BOSS_DR12
+3,0.81,1590.4,32.8,DESI_2024
+4,1.52,1750.2,45.1,eBOSS

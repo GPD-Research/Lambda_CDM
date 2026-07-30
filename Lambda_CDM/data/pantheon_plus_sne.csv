@@ -1,0 +1,8 @@
+observation_id,redshift_z,distance_modulus_mu,mu_error,survey_source
+1,0.01012,33.02,0.15,Low-z
+2,0.02134,34.78,0.12,Low-z
+3,0.15200,39.12,0.09,SDSS
+4,0.34500,41.25,0.11,SNLS
+5,0.74100,43.31,0.14,Pan-STARRS
+6,1.23000,44.82,0.18,HST
+7,1.75000,45.45,0.22,HST

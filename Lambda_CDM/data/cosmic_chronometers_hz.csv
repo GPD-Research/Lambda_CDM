@@ -1,0 +1,8 @@
+observation_id,redshift_z,hubble_rate_hz,hz_error,reference
+1,0.070,69.0,19.6,Zhang_2014
+2,0.170,83.0,8.0,Simon_2005
+3,0.380,83.0,13.5,Moresco_2016
+4,0.478,80.9,9.0,Moresco_2016
+5,0.781,105.0,12.0,Moresco_2012
+6,1.430,177.0,18.0,Simon_2005
+7,1.965,186.5,50.4,Moresco_2015
