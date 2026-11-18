@@ -12,7 +12,7 @@
   header h1 { font-size: 18px; margin: 0; font-weight: 600; }
   header span { color: var(--dim); font-size: 13px; }
   main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 12px; padding: 12px 18px; }
-  #stage { position: relative; background: radial-gradient(#0a0d1c, #020308); border: 1px solid var(--line); border-radius: 10px; min-height: 480px; }
+  #stage { position: relative; background: radial-gradient(#3d0a10, #1a0306); border: 1px solid var(--line); border-radius: 10px; min-height: 480px; }
   #sky { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   #overlay { position: absolute; left: 16px; top: 12px; pointer-events: none; }
   #overlay .era { font-size: 24px; font-weight: 600; text-shadow: 0 0 12px #000; }
@@ -54,7 +54,7 @@
   <section id="stage">
     <canvas id="sky"></canvas>
     <div id="overlay"><div class="era" id="ov-era"></div><div class="time" id="ov-time"></div></div>
-    <div id="legend">The sphere is today's observable universe, drawn on a compressed log scale. Its surface is an artist's impression of each era.</div>
+    <div id="legend">The sphere is today's observable universe, drawn on a compressed log scale. Its surface is an artist's impression of each era. The dark red around it is not space: space is the sphere itself.</div>
   </section>
   <aside>
     <div class="card"><h2>State of the universe</h2><div id="state-label"></div><div id="state-detail"></div></div>
