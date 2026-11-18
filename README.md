@@ -21,6 +21,7 @@ Open `viewer/index.html` in any browser; it needs no build or server.
 * `viewer/cosmos.js` is mirrored by `src/history.py`; `tests/test_history.py` checks they agree.
 * **Real sky:** at the CMB release the sphere wears a real CMB map: COBE DMR (default), WMAP 9-year or Planck 2015, picked top right or with `#map=wmap` / `#map=planck` in the URL. Later, about 700 galaxies cut from the Hubble Ultra Deep Field appear at the cosmic time of their catalogued redshift (Rafelski et al. 2015). Each era names its image source in the state panel.
 * `viewer/assets/*.js` embed those images as JPEG data URIs, so the page still works from disk. `viewer/tools/build_sky_assets.py` rebuilds them from the public archives (needs `healpy`, `astropy`, `pillow`, `scipy`). The sphere is drawn with WebGL2 (`viewer/skygl.js`) and falls back to the procedural drawing without it.
+* **CMB acoustic peaks:** while the CMB is on the sphere, a corner chart shows the Planck 2018 temperature spectrum against the ΛCDM best fit, with what each of the first three peaks measures. `python viewer/tools/build_cmb_spectrum.py` rebuilds `viewer/assets/cmb_spectrum.js` from the Planck Legacy Archive.
 
 ## Suggested Experiments
 
