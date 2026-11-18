@@ -2,7 +2,9 @@
 
 Times are seconds after the Big Bang in flat Lambda-CDM. Below A_LOW the universe is
 radiation dominated, so t = a^2 / (2 H0 sqrt(Omega_r)). Inflation is drawn as 60 e-folds
-ending at 1e-32 s. Mirrored in viewer/cosmos.js; tests/test_history.py compares the two.
+ending at 1e-32 s. After today radiation is negligible and the exact matter + Lambda solution
+a^(3/2) = sqrt(Om/Ol) sinh(3/2 H_L tau) is used; far-future a overflows a float, so
+ln_scale_factor is the primary function there. Mirrored in viewer/cosmos.js; tests/test_history.py compares the two.
 """
 
 import numpy as np
@@ -27,6 +29,14 @@ def _t_radiation(a):
     return a * a / (2.0 * H0_PER_S * np.sqrt(OR))
 
 
+H_L_PER_S = H0_PER_S * np.sqrt(OL)
+_RATIO = np.sqrt(OL / OM)
+
+
+def _t_matter_lambda(a):
+    return 2.0 / (3.0 * H_L_PER_S) * np.arcsinh(_RATIO * a**1.5)
+
+
 A_INFLATION_END = np.sqrt(2.0 * H0_PER_S * np.sqrt(OR) * INFLATION_END_S)
 
 
@@ -37,6 +47,8 @@ def cosmic_time(a):
         return max(0.0, INFLATION_END_S - efolds_left * (INFLATION_END_S - INFLATION_START_S))
     if a <= A_LOW:
         return _t_radiation(a)
+    if a > 1.0:
+        return AGE_S + _t_matter_lambda(a) - _t_matter_lambda(1.0)
 
     def integrand(ln_a):
         z = np.exp(-ln_a) - 1.0
@@ -61,10 +73,25 @@ def scale_factor(t):
         return A_INFLATION_END * np.exp(-INFLATION_EFOLDS * frac)
     if t <= _t_radiation(A_LOW):
         return np.sqrt(2.0 * H0_PER_S * np.sqrt(OR) * t)
-    if t >= AGE_S:
+    if t > AGE_S:
+        return float(np.exp(ln_scale_factor(t)))
+    if t == AGE_S:
         return 1.0
     ln_a = brentq(lambda x: cosmic_time(np.exp(x)) - t, np.log(A_LOW), 0.0, xtol=1e-12)
     return float(np.exp(ln_a))
+
+
+def ln_scale_factor(t):
+    """Natural log of a(t); finite in the far future where a itself overflows."""
+    if t <= AGE_S:
+        return float(np.log(scale_factor(t)))
+    x = 1.5 * H_L_PER_S * (t - AGE_S + _t_matter_lambda(1.0))
+    return float(2.0 / 3.0 * (x + np.log((1.0 - np.exp(-2.0 * x)) / 2.0) - np.log(_RATIO)))
+
+
+def from_now(years):
+    """Seconds after the Big Bang, the given number of years after today."""
+    return AGE_S + years * YEAR_S
 
 
 def temperature(a):
@@ -92,6 +119,10 @@ ERA_STARTS = [
     ("first_stars", 1e8 * YEAR_S),
     ("galaxies", 1e9 * YEAR_S),
     ("dark_energy", cosmic_time(A_LAMBDA_EQUALITY)),
+    ("alone", from_now(1.5e11)),
+    ("last_stars", from_now(1e14)),
+    ("black_holes", from_now(1e20)),
+    ("empty", from_now(1e100)),
 ]
 
 
