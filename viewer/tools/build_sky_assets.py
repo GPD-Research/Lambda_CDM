@@ -40,7 +40,7 @@ SOURCES = {
     "release_2/all-sky-maps/maps/component-maps/cmb/COM_CMB_IQU-smica_1024_R2.02_full.fits",
     "heic0406a.jpg": "https://esahubble.org/media/archives/images/large/heic0406a.jpg",
     "uvudf_rafelski2015.tsv": "https://vizier.cfa.harvard.edu/viz-bin/asu-tsv?"
-    "-source=J/AJ/150/31/table5&-out.max=unlimited&-out=RAJ2000,DEJ2000,F775W,Area,S/G,zph1,zsp,Star",
+    "-source=J/AJ/150/31/table5&-out.max=unlimited&-out=RAJ2000,DEJ2000,F775W,Area,S%2FG,zph1,zsp,Star",
 }
 
 
@@ -140,6 +140,8 @@ def build_galaxies(cache: Path, count: int = 700, atlas_w: int = 2048, cap: int 
     rows, cols = [], None
     for line in fetch(cache, "uvudf_rafelski2015.tsv").read_text().splitlines():
         f = [c.strip() for c in re.split(r"[\t|]", line)]
+        if line.startswith("#"):
+            continue
         if cols is None:
             cols = {name: i for i, name in enumerate(f)} if "RAJ2000" in f else None
             continue
