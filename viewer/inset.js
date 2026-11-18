@@ -109,12 +109,13 @@
       line += word + " ";
     }
     ctx.fillText(line, x, y);
+    return y + lh;
   }
 
   // o: { W, H, cx, cy, R, era, logt, alpha, now }
   function draw(ctx, o) {
     const d = D[o.logt >= -13 && o.logt < -10 ? "electroweak" : o.era];
-    if (!d || o.alpha <= 0.01) return;
+    if (!d || o.alpha <= 0.01 || o.W < 560) return;
     const s = Math.max(1, Math.min(o.W, o.H) / 700), bw = Math.min(360 * s, o.W * 0.3), bh = bw * 0.95;
     const bx = o.W - bw - 18 * s, by = Math.max(56 * s, o.cy - bh / 2 - 40 * s);
     const ax = o.cx + Math.max(o.R, 2) * 0.42, ay = o.cy - Math.max(o.R, 2) * 0.32;
@@ -142,9 +143,9 @@
     ctx.fillStyle = "#ffffff";
     for (const [key, n] of vertices) if (n > 1) { const [x, y] = P(key.split(",").map(Number)); ctx.beginPath(); ctx.arc(x, y, 3 * s, 0, 6.283); ctx.fill(); }
     ctx.textBaseline = "top"; ctx.fillStyle = "#ffd36b"; ctx.font = `${13 * s}px "Cambria Math", "STIX Two Math", serif`;
-    wrap(ctx, d.eq, gx, gy + gh + 12 * s, gw, 16 * s);
+    const eqEnd = wrap(ctx, d.eq, gx, gy + gh + 12 * s, gw, 16 * s);
     ctx.fillStyle = "#9aa6c8"; ctx.font = `${11.5 * s}px system-ui, sans-serif`;
-    wrap(ctx, d.note, gx, gy + gh + 34 * s, gw, 14.5 * s);
+    wrap(ctx, d.note, gx, eqEnd + 6 * s, gw, 14.5 * s);
     ctx.restore();
   }
 
