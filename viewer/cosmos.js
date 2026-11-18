@@ -25,14 +25,16 @@
   }
   const AGE = acc;
 
+  const A_INF_END = Math.sqrt(2 * h0 * Math.sqrt(Or) * INF_END);
+
   function cosmicTime(a) {
+    if (a < A_INF_END) return Math.max(0, INF_END - (Math.log(A_INF_END / a) / EFOLDS) * (INF_END - INF_START));
     if (a <= A_LOW) return tRad(a);
     const x = Math.min(N - 1e-9, (Math.log(a) - LN_LO) / DL), i = Math.floor(x);
     return Math.exp(LN_T[i] + (x - i) * (LN_T[i + 1] - LN_T[i]));
   }
   const timeOfRedshift = (z) => cosmicTime(1 / (1 + z));
 
-  const A_INF_END = Math.sqrt(2 * h0 * Math.sqrt(Or) * INF_END);
   const A_ACC = Math.cbrt(Om / (2 * Ol));
 
   function scaleFactor(t) {

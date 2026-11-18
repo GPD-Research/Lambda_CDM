@@ -36,6 +36,11 @@ def test_scale_factor_inverts_cosmic_time():
         assert history.scale_factor(history.cosmic_time(a)) == pytest.approx(a, rel=1e-8)
 
 
+def test_cosmic_time_inverts_scale_factor_during_inflation():
+    for t in [1e-36, 1e-34, 1e-33]:
+        assert history.cosmic_time(history.scale_factor(t)) == pytest.approx(t, rel=1e-8)
+
+
 def test_inflation_is_60_efolds_and_continuous():
     a_start = history.scale_factor(history.INFLATION_START_S)
     assert np.log(history.A_INFLATION_END / a_start) == pytest.approx(60.0)

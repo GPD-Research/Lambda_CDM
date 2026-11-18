@@ -27,8 +27,14 @@ def _t_radiation(a):
     return a * a / (2.0 * H0_PER_S * np.sqrt(OR))
 
 
+A_INFLATION_END = np.sqrt(2.0 * H0_PER_S * np.sqrt(OR) * INFLATION_END_S)
+
+
 def cosmic_time(a):
     """Seconds after the Big Bang at which the scale factor equals a."""
+    if a < A_INFLATION_END:
+        efolds_left = np.log(A_INFLATION_END / a) / INFLATION_EFOLDS
+        return max(0.0, INFLATION_END_S - efolds_left * (INFLATION_END_S - INFLATION_START_S))
     if a <= A_LOW:
         return _t_radiation(a)
 
@@ -44,7 +50,6 @@ def time_of_redshift(z):
 
 
 AGE_S = cosmic_time(1.0)
-A_INFLATION_END = np.sqrt(2.0 * H0_PER_S * np.sqrt(OR) * INFLATION_END_S)
 A_ACCELERATION = (OM / (2.0 * OL)) ** (1.0 / 3.0)
 
 
