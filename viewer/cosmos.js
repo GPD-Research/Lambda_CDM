@@ -36,6 +36,7 @@
   const timeOfRedshift = (z) => cosmicTime(1 / (1 + z));
 
   const A_ACC = Math.cbrt(Om / (2 * Ol));
+  const A_LAMBDA_EQ = Math.cbrt(Om / Ol);
 
   function scaleFactor(t) {
     if (t < INF_END) return A_INF_END * Math.exp((-EFOLDS * (INF_END - t)) / (INF_END - INF_START));
@@ -78,7 +79,7 @@
       "Gas collapses in dark-matter clumps and ignites the first stars, whose light re-ionizes the hydrogen."],
     ["galaxies", 1e9 * YEAR, "Galaxies grow and merge",
       "Galaxies build up along a web of dark-matter filaments. Star formation peaks around 3 billion years."],
-    ["dark_energy", cosmicTime(A_ACC), "Dark energy takes over",
+    ["dark_energy", cosmicTime(A_LAMBDA_EQ), "Dark energy takes over",
       "Matter has thinned out enough that dark energy dominates, and the expansion is speeding up."],
   ].map(([id, start, label, detail]) => ({ id, start, label, detail }));
 
@@ -134,7 +135,7 @@
   ];
 
   const api = {
-    YEAR, T_CMB0, AGE, A_LOW, A_ACC, A_INF_END, INF_START, INF_END, Om, Or, Ol,
+    YEAR, T_CMB0, AGE, A_LOW, A_ACC, A_LAMBDA_EQ, A_INF_END, INF_START, INF_END, Om, Or, Ol,
     hubble, cosmicTime, timeOfRedshift, scaleFactor, temperature, densityFractions, era, ERAS, EVENTS,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;

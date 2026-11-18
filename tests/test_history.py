@@ -41,6 +41,13 @@ def test_cosmic_time_inverts_scale_factor_during_inflation():
         assert history.cosmic_time(history.scale_factor(t)) == pytest.approx(t, rel=1e-8)
 
 
+def test_dark_energy_era_starts_when_it_outweighs_matter():
+    start = dict(history.ERA_STARTS)["dark_energy"]
+    fractions = history.density_fractions(history.scale_factor(start))
+    assert fractions["dark_energy"] == pytest.approx(fractions["matter"], rel=1e-6)
+    assert start > history.cosmic_time(history.A_ACCELERATION)
+
+
 def test_inflation_is_60_efolds_and_continuous():
     a_start = history.scale_factor(history.INFLATION_START_S)
     assert np.log(history.A_INFLATION_END / a_start) == pytest.approx(60.0)

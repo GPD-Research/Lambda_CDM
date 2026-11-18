@@ -51,6 +51,7 @@ def time_of_redshift(z):
 
 AGE_S = cosmic_time(1.0)
 A_ACCELERATION = (OM / (2.0 * OL)) ** (1.0 / 3.0)
+A_LAMBDA_EQUALITY = (OM / OL) ** (1.0 / 3.0)
 
 
 def scale_factor(t):
@@ -90,7 +91,7 @@ ERA_STARTS = [
     ("dark_ages", time_of_redshift(800.0)),
     ("first_stars", 1e8 * YEAR_S),
     ("galaxies", 1e9 * YEAR_S),
-    ("dark_energy", cosmic_time(A_ACCELERATION)),
+    ("dark_energy", cosmic_time(A_LAMBDA_EQUALITY)),
 ]
 
 
