@@ -130,6 +130,6 @@ def era(t):
     """Id of the era at time t in seconds."""
     current = ERA_STARTS[0][0]
     for era_id, start in ERA_STARTS:
-        if t >= start:
+        if t >= start * (1.0 - 1e-12):
             current = era_id
     return current

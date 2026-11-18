@@ -67,6 +67,7 @@ def test_far_future_is_de_sitter():
     ln_a = history.ln_scale_factor(history.from_now(1e100))
     assert ln_a == pytest.approx(1e100 / hubble_time_yr, rel=1e-6)
     assert history.era(history.from_now(1e101)) == "empty"
+    assert history.era(10 ** np.log10(history.from_now(1e14))) == "last_stars"
 
 
 def test_temperature_today_and_at_recombination():

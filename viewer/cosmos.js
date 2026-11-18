@@ -112,7 +112,8 @@
 
   function era(t) {
     let cur = ERAS[0];
-    for (const e of ERAS) if (t >= e.start) cur = e;
+    // Tolerance so an event placed on an era boundary survives the round trip through log10(t).
+    for (const e of ERAS) if (t >= e.start * (1 - 1e-12)) cur = e;
     return cur;
   }
 
