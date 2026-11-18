@@ -19,6 +19,7 @@ import argparse
 import base64
 import io
 import json
+import re
 import urllib.request
 from pathlib import Path
 
@@ -138,7 +139,7 @@ def build_galaxies(cache: Path, count: int = 700, atlas_w: int = 2048, cap: int 
 
     rows, cols = [], None
     for line in fetch(cache, "uvudf_rafelski2015.tsv").read_text().splitlines():
-        f = [c.strip() for c in line.split("|")]
+        f = [c.strip() for c in re.split(r"[\t|]", line)]
         if cols is None:
             cols = {name: i for i, name in enumerate(f)} if "RAJ2000" in f else None
             continue
