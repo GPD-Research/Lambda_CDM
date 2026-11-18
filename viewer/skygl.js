@@ -90,10 +90,18 @@
   function texture(gl, src, grey, onload) {
     const tex = gl.createTexture(), img = new Image();
     img.onload = () => {
+      const max = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+      let src = img;
+      if (img.width > max || img.height > max) {
+        const k = max / Math.max(img.width, img.height);
+        src = document.createElement("canvas");
+        src.width = Math.floor(img.width * k); src.height = Math.floor(img.height * k);
+        src.getContext("2d").drawImage(img, 0, 0, src.width, src.height);
+      }
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-      if (grey) gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, gl.RED, gl.UNSIGNED_BYTE, img);
-      else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
+      if (grey) gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, gl.RED, gl.UNSIGNED_BYTE, src);
+      else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, src);
       gl.generateMipmap(gl.TEXTURE_2D);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
