@@ -11,6 +11,14 @@ This module computes the background expansion history and thermodynamic evolutio
 * `src/qft.py` - Handles standard model particle masses, thermal freeze-out, and vacuum energy.
 * `src/metrics.py` - Statistical evaluation engine (Chi-squared, AIC, BIC).
 
+## History of the Universe viewer
+Open `viewer/index.html` in any browser; it needs no build or server.
+
+* **Inflating sphere:** today's observable universe grows with the scale factor a(t), solved from the Friedmann equation with the parameters in `src/core.py`. Its surface changes with each era: white-hot radiation, plasma, the mottled CMB, the dark ages, then stars and galaxies.
+* **State panel:** the current era ("Pure energy", "Quark–gluon plasma", "Transparent: CMB released", ...), the time, temperature, redshift and the radiation/matter/dark-energy budget.
+* **Timeline:** a log-time bar from 10⁻³⁶ s to today. Each key prediction is marked verified, recreated in the lab, partly verified or not yet verified, with the evidence (COBE, WMAP, Planck, BAO, supernovae, ...).
+* `viewer/cosmos.js` is mirrored by `src/history.py`; `tests/test_history.py` checks they agree.
+
 ## Suggested Experiments
 
 ### 1. Confirming the Model: Type Ia Supernovae
