@@ -1,5 +1,5 @@
 (() => {
-  const C = Cosmos, $ = (id) => document.getElementById(id);
+  const root = window, C = Cosmos, $ = (id) => document.getElementById(id);
   const LOG_MIN = -36, LOG_MAX = Math.log10(C.AGE);
   const STATUS = {
     verified: ["Verified", "#4ade80"],
@@ -28,6 +28,25 @@
   const GALAXIES = Array.from({ length: 420 }, () => ({
     p: near(pick(), 0.1), born: 15.95 + 0.9 * rnd(), size: 0.6 + rnd(), spiral: rnd() < 0.6, ang: rnd() * Math.PI,
   }));
+
+  // Real galaxies from the Hubble Ultra Deep Field, each shown twice at random spots and angles.
+  // A galaxy appears when the light Hubble saw left it, at t(z) from its catalogue redshift.
+  const SKY = root.SKY_ASSETS || {}, HUDF = SKY.hudf_galaxies;
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const HUDF_PLACED = [];
+  if (HUDF) {
+    seed = 29;
+    for (let copy = 0; copy < 2; copy++) for (const [x, y, size, z, sidePx] of HUDF.galaxies) {
+      const p = near(pick(), 0.12), ang = rnd() * 6.283, hs = 0.005 + sidePx / 8000;
+      const u = norm(cross(p, Math.abs(p[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0])), v = cross(p, u);
+      const e1 = u.map((c, i) => hs * (Math.cos(ang) * c + Math.sin(ang) * v[i]));
+      const e2 = u.map((c, i) => hs * (-Math.sin(ang) * c + Math.cos(ang) * v[i]));
+      HUDF_PLACED.push({ p, e1, e2, z, born: Math.log10(C.timeOfRedshift(z)), gain: copy ? 0.85 : 1,
+        uv: [x / HUDF.width, y / HUDF.height, size / HUDF.width, size / HUDF.height] });
+    }
+    HUDF_PLACED.minBorn = Math.min(...HUDF_PLACED.map((g) => g.born));
+  }
+  const HUDF_BORN = HUDF_PLACED.slice(0, HUDF ? HUDF.galaxies.length : 0).map((g) => g.born).sort((a, b) => a - b);
 
   // ---------- era visuals, keyed on log10(t / s) ----------
   const lerp = (a, b, f) => a + (b - a) * f;
@@ -87,7 +106,15 @@
   }
 
   // ---------- canvases ----------
-  const sky = $("sky"), tl = $("timeline");
+  const sky = $("sky"), skyGl = $("sky-gl"), skyTop = $("sky-top"), tl = $("timeline");
+  const gl = root.SkyGL ? root.SkyGL.create(skyGl, SKY, HUDF_PLACED) : null;
+  const MAPS = {
+    cmb_cobe: ["COBE DMR", "COBE DMR 4-year map (53 + 90 GHz), NASA/COBE Science Team, via NASA LAMBDA. About 7° resolution; the dipole is removed and the Milky Way band is filled in."],
+    cmb_wmap: ["WMAP", "WMAP 9-year Internal Linear Combination map, NASA/WMAP Science Team, via NASA LAMBDA. About 1° resolution."],
+    cmb_planck: ["Planck", "Planck 2015 SMICA CMB map, ESA and the Planck Collaboration, via NASA/IPAC IRSA. 5 arcminute resolution; masked Milky Way pixels are filled in."],
+  };
+  let cmbMap = "cmb_cobe";
+  if (!gl) skyGl.style.display = "none";
   let skyDims = [0, 0], tlDims = [0, 0];
   function fit(cv, dimsRef) {
     const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
@@ -95,7 +122,7 @@
     cv.getContext("2d").setTransform(dpr, 0, 0, dpr, 0, 0);
     dimsRef[0] = r.width; dimsRef[1] = r.height;
   }
-  const resize = () => { fit(sky, skyDims); fit(tl, tlDims); };
+  const resize = () => { fit(sky, skyDims); fit(skyTop, [0, 0]); fit(tl, tlDims); };
   window.addEventListener("resize", resize);
 
   const rgb = (c, a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
@@ -143,7 +170,7 @@
           ctx.fillStyle = `rgba(255,255,255,${speckle * 0.35 * fl * z})`;
           ctx.beginPath(); ctx.arc(x, y, R * 0.035 * (0.6 + z), 0, 6.283); ctx.fill();
         }
-        if (cmb > 0) {
+        if (cmb > 0 && !gl) {
           ctx.fillStyle = rgb(cmbColor(s.v), cmb * 0.55 * z);
           ctx.beginPath(); ctx.arc(x, y, R * 0.085 * (0.4 + 0.6 * z), 0, 6.283); ctx.fill();
         }
@@ -160,7 +187,7 @@
       ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.fill();
     }
     ctx.shadowBlur = 0;
-    for (const g of GALAXIES) {
+    for (const g of gl ? [] : GALAXIES) {
       const on = ramp(logt, g.born, g.born + 0.25);
       if (on <= 0) continue;
       const [x, y, z] = project(g.p);
@@ -173,11 +200,24 @@
       ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.283); ctx.fill();
       ctx.restore();
     }
-    const limb = ctx.createRadialGradient(cx, cy, R * 0.55, cx, cy, R);
-    limb.addColorStop(0, "rgba(0,0,0,0)"); limb.addColorStop(1, "rgba(0,0,0,0.55)");
-    ctx.fillStyle = limb; ctx.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+    if (!gl) {
+      const limb = ctx.createRadialGradient(cx, cy, R * 0.55, cx, cy, R);
+      limb.addColorStop(0, "rgba(0,0,0,0)"); limb.addColorStop(1, "rgba(0,0,0,0.55)");
+      ctx.fillStyle = limb; ctx.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+    }
     ctx.restore();
-    if (window.EraInset && $("show-inset").checked) EraInset.draw(ctx, { W, H, cx, cy, R, era: C.era(t).id, logt, alpha: 1, now });
+    if (gl) {
+      const d = window.devicePixelRatio || 1;
+      gl.draw({
+        W: Math.round(W * d), H: Math.round(H * d), cx: cx * d, cy: cy * d, R: R * d,
+        M: [cr, 0, sr, st * sr, ct, -st * cr, -ct * sr, st, ct * cr],
+        map: cmbMap, cmb: cmb * 0.92, warm: 1 - ramp(logt, 13.1, 13.9), contrast: ramp(logt, 12.95, 13.2),
+        logt, zNow: 1 / a - 1,
+      });
+    }
+    const tctx = skyTop.getContext("2d");
+    tctx.clearRect(0, 0, W, H);
+    if (window.EraInset && $("show-inset").checked) EraInset.draw(tctx, { W, H, cx, cy, R, era: C.era(t).id, logt, alpha: 1, now });
   }
 
   // ---------- timeline ----------
@@ -247,6 +287,8 @@
     const t = 10 ** logt, a = C.scaleFactor(t), e = C.era(t), inflating = t < C.INF_END;
     $("ov-era").textContent = e.label; $("ov-time").textContent = fmtTime(t);
     $("state-label").textContent = e.label; $("state-detail").textContent = e.detail;
+    const src = sourceNote(logt);
+    $("state-source").textContent = src ? src[1] : ""; $("ov-src").textContent = src ? src[0] : "";
     $("r-time").textContent = fmtTime(t);
     const T = C.temperature(a);
     $("r-temp").textContent = inflating ? "≈ 0 K (energy is in the inflaton)" : `${num(T)} K`;
@@ -271,6 +313,22 @@
     $("event-badge").textContent = STATUS[ev.status][0]; $("event-badge").style.background = STATUS[ev.status][1];
     $("event-pred").textContent = ev.predicted; $("event-evid").textContent = ev.evidence;
     $("t-slider").value = logt;
+  }
+
+  function sourceNote(lt) {
+    const cmb = ramp(lt, 12.9, 13.05) * (1 - 0.97 * ramp(lt, 13.5, 15.6));
+    if (gl && cmb > 0.05) {
+      const [name, credit] = MAPS[cmbMap], range = SKY[cmbMap].rangeMicroK;
+      const parts = Math.round(C.T_CMB0 * 1e6 / range / 1000) * 1000;
+      return [`CMB image: ${name}`, `Image: ${credit} Colours span ±${range} μK, a ripple of about 1 part in ${parts.toLocaleString()}, greatly exaggerated.`];
+    }
+    let n = 0;
+    while (n < HUDF_BORN.length && HUDF_BORN[n] <= lt) n++;
+    if (gl && n > 0) {
+      return ["Galaxies: Hubble Ultra Deep Field",
+        `Galaxies: Hubble Ultra Deep Field (ESA/Hubble heic0406a), NASA, ESA, S. Beckwith (STScI) and the HUDF Team, CC BY 4.0; redshifts from Rafelski et al. 2015. ${n} of ${HUDF_BORN.length} have appeared: each shows up when the light Hubble saw left it, in Hubble's colours, and looks bluer nearer the present as its redshift shrinks. Their places on the sphere are illustrative.`];
+    }
+    return null;
   }
 
   function setLogt(v, keepSelection = false) {
@@ -305,8 +363,15 @@
     requestAnimationFrame(loop);
   }
 
-  const fromHash = Number(new URLSearchParams(location.hash.slice(1)).get("t"));
-  if (location.hash && Number.isFinite(fromHash)) logt = Math.min(LOG_MAX, Math.max(LOG_MIN, fromHash));
+  const hash = new URLSearchParams(location.hash.slice(1)), fromHash = Number(hash.get("t"));
+  if (hash.has("t") && Number.isFinite(fromHash)) logt = Math.min(LOG_MAX, Math.max(LOG_MIN, fromHash));
+  if (MAPS[`cmb_${hash.get("map")}`]) cmbMap = `cmb_${hash.get("map")}`;
+  const pickMap = $("cmb-map");
+  if (gl) {
+    pickMap.value = cmbMap.slice(4);
+    pickMap.addEventListener("change", () => { cmbMap = `cmb_${pickMap.value}`; gl.map(cmbMap); updatePanel(); });
+    gl.map(cmbMap);
+  } else pickMap.parentElement.style.display = "none";
   resize(); syncSpeed(); updatePanel();
   requestAnimationFrame(loop);
 })();
