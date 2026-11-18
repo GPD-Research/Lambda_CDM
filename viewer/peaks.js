@@ -13,9 +13,9 @@
   function draw(ctx, o) {
     const S = (root.SKY_ASSETS || {}).cmb_spectrum;
     if (!S || o.alpha <= 0.01 || o.W < 560) return;
-    const s = Math.max(1, Math.min(o.W, o.H) / 700), bw = Math.min(380 * s, o.W * 0.34), bh = bw * 0.72;
+    const s = Math.max(1, Math.min(o.W, o.H) / 700), bw = Math.min(380 * s, o.W * 0.34), bh = bw * 0.9;
     const bx = 16 * s, by = o.H - bh - 16 * s, pad = 12 * s;
-    const gx = bx + pad + 36 * s, gy = by + 30 * s, gw = bw - 2 * pad - 40 * s, gh = bh - 74 * s;
+    const gx = bx + pad + 36 * s, gy = by + 30 * s, gw = bw - 2 * pad - 40 * s, gh = bh - 116 * s;
     const X = (l) => gx + xf(l) * gw, Y = (d) => gy + gh * (1 - d / 6500);
     ctx.save(); ctx.globalAlpha = o.alpha;
     ctx.fillStyle = "rgba(8,10,24,0.86)"; ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = 1;
@@ -29,7 +29,7 @@
       ctx.textBaseline = "middle"; ctx.fillText(String(d), gx - ctx.measureText(String(d)).width - 4 * s, Y(d));
     }
     ctx.textBaseline = "top";
-    for (const l of [2, 10, 30, 500, 1000, 1500, 2000, 2500]) {
+    for (const l of [2, 30, 500, 1000, 1500, 2000, 2500]) {
       const t = String(l); ctx.fillText(t, X(l) - ctx.measureText(t).width / 2, gy + gh + 3 * s);
     }
     ctx.fillText("multipole ℓ (smaller angles →)", gx + gw / 2 - 64 * s, gy + gh + 15 * s);
@@ -51,8 +51,8 @@
       ctx.fillStyle = "#ffd36b"; ctx.fillText(n, X(l) - 3 * s, Y(d) - 4 * s);
     }
     ctx.font = `${10 * s}px system-ui, sans-serif`; ctx.textBaseline = "top"; ctx.fillStyle = "#9aa6c8";
-    ctx.fillText(PEAKS.map(([, n, t]) => `${n} ${t}`).join("   "), bx + pad, by + bh - 28 * s, bw - 2 * pad);
-    ctx.fillText("Line: ΛCDM best fit (6 parameters). Points: Planck 2018, ESA/Planck via IRSA.", bx + pad, by + bh - 15 * s, bw - 2 * pad);
+    const lines = [...PEAKS.map(([, n, t]) => `Peak ${n} ${t}`), "Line: ΛCDM fit (6 parameters). Points: Planck 2018, ESA."];
+    lines.forEach((t, i) => ctx.fillText(t, bx + pad, gy + gh + 32 * s + i * 13 * s, bw - 2 * pad));
     ctx.restore();
   }
 
