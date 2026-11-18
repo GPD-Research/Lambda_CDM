@@ -177,6 +177,7 @@
     limb.addColorStop(0, "rgba(0,0,0,0)"); limb.addColorStop(1, "rgba(0,0,0,0.55)");
     ctx.fillStyle = limb; ctx.fillRect(cx - R, cy - R, 2 * R, 2 * R);
     ctx.restore();
+    if (window.EraInset && $("show-inset").checked) EraInset.draw(ctx, { W, H, cx, cy, R, era: C.era(t).id, logt, alpha: 1, now });
   }
 
   // ---------- timeline ----------
