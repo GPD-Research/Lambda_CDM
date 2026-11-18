@@ -71,6 +71,9 @@
 
   // Sphere radius on a compressed log scale of a, so every era stays visible.
   const SIZE = [[-52, 0.006], [-25.7, 0.16], [-10, 0.36], [-3, 0.6], [-1, 0.8], [0, 1], [3, 1.06], [30, 1.12]];
+  // How strongly the CMB map shows: it appears at release, dims in the dark ages and fades out
+  // entirely by ~10¹² years from now, when it has redshifted beyond detection.
+  const cmbLevel = (lt) => ramp(lt, 12.9, 13.05) * (1 - 0.97 * ramp(lt, 13.5, 15.6)) * (1 - ramp(lt, 18.5, 19.5));
   // Beyond the merged Local Group, galaxies fade out of view 30–300 billion years from now.
   const galFade = (lt) => 1 - ramp(lt, 18.1, 19.0);
 
@@ -141,7 +144,7 @@
     const t = 10 ** logt, la = C.lnScaleFactor(t) / Math.LN10, a = 10 ** la, fade = galFade(logt);
     const cx = W / 2, cy = H / 2 + 14, R = Math.max(1.5, track(SIZE, la) * Math.min(W, H) * 0.42);
     const base = track(BASE, logt), glow = track(GLOW, logt), speckle = track(SPECKLE, logt);
-    const cmb = ramp(logt, 12.9, 13.05) * (1 - 0.97 * ramp(logt, 13.5, 15.6));
+    const cmb = cmbLevel(logt);
     const lambda = logt > 10 ? C.densityFractions(a).dark_energy : 0;
 
     if (glow > 0) {
@@ -367,7 +370,7 @@
   }
 
   function sourceNote(lt) {
-    const cmb = ramp(lt, 12.9, 13.05) * (1 - 0.97 * ramp(lt, 13.5, 15.6));
+    const cmb = cmbLevel(lt);
     if (gl && cmb > 0.05) {
       const [name, credit] = MAPS[cmbMap], range = SKY[cmbMap].rangeMicroK;
       const parts = Math.round(C.T_CMB0 * 1e6 / range / 1000) * 1000;
