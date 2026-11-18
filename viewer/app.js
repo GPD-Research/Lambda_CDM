@@ -106,7 +106,7 @@
   }
 
   // ---------- canvases ----------
-  const sky = $("sky"), skyGl = $("sky-gl"), tl = $("timeline");
+  const sky = $("sky"), skyGl = $("sky-gl"), skyTop = $("sky-top"), tl = $("timeline");
   const gl = root.SkyGL ? root.SkyGL.create(skyGl, SKY, HUDF_PLACED) : null;
   const MAPS = {
     cmb_cobe: ["COBE DMR", "COBE DMR 4-year map (53 + 90 GHz), NASA/COBE Science Team, via NASA LAMBDA. About 7° resolution; the dipole is removed and the Milky Way band is filled in."],
@@ -122,7 +122,7 @@
     cv.getContext("2d").setTransform(dpr, 0, 0, dpr, 0, 0);
     dimsRef[0] = r.width; dimsRef[1] = r.height;
   }
-  const resize = () => { fit(sky, skyDims); fit(tl, tlDims); };
+  const resize = () => { fit(sky, skyDims); fit(skyTop, [0, 0]); fit(tl, tlDims); };
   window.addEventListener("resize", resize);
 
   const rgb = (c, a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
@@ -215,6 +215,9 @@
         logt, zNow: 1 / a - 1,
       });
     }
+    const tctx = skyTop.getContext("2d");
+    tctx.clearRect(0, 0, W, H);
+    if (window.EraInset && $("show-inset").checked) EraInset.draw(tctx, { W, H, cx, cy, R, era: C.era(t).id, logt, alpha: 1, now });
   }
 
   // ---------- timeline ----------
