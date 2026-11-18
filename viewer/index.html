@@ -13,7 +13,12 @@
   header span { color: var(--dim); font-size: 13px; }
   main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 12px; padding: 12px 18px; }
   #stage { position: relative; background: radial-gradient(#3d0a10, #1a0306); border: 1px solid var(--line); border-radius: 10px; min-height: 480px; }
-  #sky { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #sky, #sky-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #ov-src { font-size: 12px; color: var(--dim); margin-top: 4px; text-shadow: 0 0 8px #000; }
+  #map-pick { position: absolute; right: 14px; top: 12px; color: var(--dim); font-size: 12px; display: flex; gap: 6px; align-items: center; }
+  #map-pick select { background: #18203d; color: var(--ink); border: 1px solid #2a3563; border-radius: 6px; padding: 3px 6px; font: inherit; }
+  #state-source { color: var(--dim); font-size: 12px; margin-top: 6px; }
+  #state-source:empty { display: none; }
   #overlay { position: absolute; left: 16px; top: 12px; pointer-events: none; }
   #overlay .era { font-size: 24px; font-weight: 600; text-shadow: 0 0 12px #000; }
   #overlay .time { font-size: 15px; color: var(--accent); margin-top: 2px; font-variant-numeric: tabular-nums; }
@@ -53,11 +58,13 @@
 <main>
   <section id="stage">
     <canvas id="sky"></canvas>
-    <div id="overlay"><div class="era" id="ov-era"></div><div class="time" id="ov-time"></div></div>
-    <div id="legend">The sphere is today's observable universe, drawn on a compressed log scale. Its surface is an artist's impression of each era. The dark red around it is not space: space is the sphere itself.</div>
+    <canvas id="sky-gl"></canvas>
+    <div id="overlay"><div class="era" id="ov-era"></div><div class="time" id="ov-time"></div><div id="ov-src"></div></div>
+    <label id="map-pick">CMB map <select id="cmb-map"><option value="cobe">COBE DMR (1992)</option><option value="wmap">WMAP 9-year (2012)</option><option value="planck">Planck (2015)</option></select></label>
+    <div id="legend">The sphere is today's observable universe, drawn on a compressed log scale. Its surface shows real sky images where we have them (the CMB maps and Hubble Ultra Deep Field galaxies) and an artist's impression elsewhere. The dark red around it is not space: space is the sphere itself.</div>
   </section>
   <aside>
-    <div class="card"><h2>State of the universe</h2><div id="state-label"></div><div id="state-detail"></div></div>
+    <div class="card"><h2>State of the universe</h2><div id="state-label"></div><div id="state-detail"></div><div id="state-source"></div></div>
     <div class="card"><h2>Readouts</h2>
       <table>
         <tr><td>Time after the Big Bang</td><td id="r-time"></td></tr>
@@ -93,7 +100,12 @@
   </div>
   <p id="note">Time runs on a log scale because most of the action happens in the first million years. Temperature uses T = T₀/a with T₀ = 2.7255 K. Inflation is drawn as 60 e-folds ending at 10⁻³² s; the physics before ~10⁻¹² s is extrapolated, not tested at those energies. The universe may be much larger than the observable patch shown.</p>
 </main>
+<script src="assets/cmb_cobe.js"></script>
+<script src="assets/cmb_wmap.js"></script>
+<script src="assets/cmb_planck.js"></script>
+<script src="assets/hudf_galaxies.js"></script>
 <script src="cosmos.js"></script>
+<script src="skygl.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
