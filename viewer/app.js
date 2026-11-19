@@ -251,6 +251,8 @@
         M: [cr, 0, sr, st * sr, ct, -st * cr, -ct * sr, st, ct * cr],
         map: cmbMap, cmb: cmb * 0.92, warm: 1 - ramp(logt, 13.1, 13.9), contrast: ramp(logt, 12.95, 13.2),
         logt, zNow: 1 / a - 1, fade,
+        // Schematic cosmic web: grows from the dark ages, sharpest at cosmic noon, then thins out.
+        web: 0.55 * ramp(logt, 15.4, 16.8) * (1 - 0.5 * ramp(logt, 17.2, 17.6)) * fade,
       });
     }
     const tctx = skyTop.getContext("2d");

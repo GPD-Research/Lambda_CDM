@@ -9,7 +9,7 @@
   // uInv is the view rotation M uploaded row-major, so GLSL sees M^T: uInv * view = world.
   const SPHERE_FS = `#version 300 es
   precision highp float;
-  uniform vec2 uC; uniform float uR, uH, uAlpha, uWarm, uContrast; uniform mat3 uInv; uniform int uLimb;
+  uniform vec2 uC; uniform float uR, uH, uAlpha, uWarm, uContrast; uniform mat3 uInv; uniform int uLimb, uWeb;
   uniform sampler2D uTex;
   out vec4 o;
   vec3 planck(float v) {
@@ -36,6 +36,10 @@
     vec2 uv2 = vec2(fract(uv.x + 0.5), uv.y);
     vec2 dx = dFdx(uv), dy = dFdy(uv), dx2 = dFdx(uv2), dy2 = dFdy(uv2);
     if (abs(dx2.x) + abs(dy2.x) < abs(dx.x) + abs(dy.x)) { dx = dx2; dy = dy2; }
+    if (uWeb == 1) {
+      float w = textureGrad(uTex, uv, dx, dy).r, a = uAlpha * w * (0.45 + 0.55 * z) * edge;
+      o = vec4(vec3(0.55, 0.68, 1.0) * a, a); return;
+    }
     float v = (textureGrad(uTex, uv, dx, dy).r * 2.0 - 1.0) * uContrast;
     // Freshly released light is a ~3000 K orange glow with slightly hotter and cooler patches;
     // later it is shown in the usual exaggerated map colours.
@@ -170,8 +174,17 @@
       if (tex) {
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex);
-        gl.uniform1i(sphere.u.uTex, 0); gl.uniform1i(sphere.u.uLimb, 0); gl.uniform1f(sphere.u.uAlpha, s.cmb);
+        gl.uniform1i(sphere.u.uTex, 0); gl.uniform1i(sphere.u.uLimb, 0); gl.uniform1i(sphere.u.uWeb, 0); gl.uniform1f(sphere.u.uAlpha, s.cmb);
         gl.uniform1f(sphere.u.uWarm, s.warm); gl.uniform1f(sphere.u.uContrast, s.contrast);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      }
+      const web = s.web > 0.002 ? map("cosmic_web") : null;
+      if (web) {
+        gl.useProgram(sphere.p); gl.bindVertexArray(quad);
+        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, web);
+        gl.uniform1i(sphere.u.uTex, 0); gl.uniform1i(sphere.u.uLimb, 0); gl.uniform1i(sphere.u.uWeb, 1);
+        gl.uniform1f(sphere.u.uAlpha, s.web);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       }
       if (atlas && placements.length && s.logt > placements.minBorn - 0.05 && s.fade > 0.002) {
@@ -187,7 +200,7 @@
       }
       gl.useProgram(sphere.p); gl.bindVertexArray(quad);
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      gl.uniform1i(sphere.u.uLimb, 1);
+      gl.uniform1i(sphere.u.uLimb, 1); gl.uniform1i(sphere.u.uWeb, 0);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
     return { draw, map };
