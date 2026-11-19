@@ -132,6 +132,30 @@
   }
   const resize = () => { fit(sky, skyDims); fit(skyTop, [0, 0]); fit(tl, tlDims); };
   window.addEventListener("resize", resize);
+
+  // Drag rotates the sphere, but only when the press lands on the sphere itself, so page scrolling
+  // (mouse wheel, trackpad, or touch outside the sphere) is left alone.
+  const view = { yaw: 0, pitch: 0.4, cx: 0, cy: 0, R: 0, drag: null, last: 0 };
+  const onSphere = (ev) => {
+    const r = skyTop.getBoundingClientRect();
+    return Math.hypot(ev.clientX - r.left - view.cx, ev.clientY - r.top - view.cy) <= Math.max(view.R, 12);
+  };
+  skyTop.addEventListener("pointerdown", (ev) => {
+    if (!onSphere(ev)) return;
+    view.drag = { x: ev.clientX, y: ev.clientY, yaw: view.yaw, pitch: view.pitch };
+    skyTop.setPointerCapture(ev.pointerId); ev.preventDefault();
+  });
+  skyTop.addEventListener("pointermove", (ev) => {
+    skyTop.style.cursor = view.drag ? "grabbing" : onSphere(ev) ? "grab" : "";
+    if (!view.drag) return;
+    const k = 1 / Math.max(view.R, 60);
+    view.yaw = view.drag.yaw - (ev.clientX - view.drag.x) * k;
+    view.pitch = Math.max(-1.45, Math.min(1.45, view.drag.pitch + (ev.clientY - view.drag.y) * k));
+  });
+  const endDrag = () => (view.drag = null);
+  skyTop.addEventListener("pointerup", endDrag); skyTop.addEventListener("pointercancel", endDrag);
+  // Touch: block the page's pan only for touches that start on the sphere.
+  skyTop.addEventListener("touchstart", (ev) => { if (onSphere(ev.touches[0])) ev.preventDefault(); }, { passive: false });
   // The stage also changes size when the side panel's text reflows, with no window resize event;
   // a canvas left at its old bitmap size is then stretched by CSS into an oval.
   if (window.ResizeObserver) new ResizeObserver(resize).observe(sky);
@@ -166,7 +190,10 @@
     ctx.fillStyle = body; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 6.283); ctx.fill();
 
     ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 6.283); ctx.clip();
-    const rot = now * 0.00006, cr = Math.cos(rot), sr = Math.sin(rot), tilt = 0.4, ct = Math.cos(tilt), st = Math.sin(tilt);
+    view.cx = cx; view.cy = cy; view.R = R;
+    if ($("spin").checked && !view.drag) view.yaw += 0.00006 * (now - (view.last || now));
+    view.last = now;
+    const rot = view.yaw, cr = Math.cos(rot), sr = Math.sin(rot), tilt = view.pitch, ct = Math.cos(tilt), st = Math.sin(tilt);
     const project = (p) => {
       const x = p[0] * cr + p[2] * sr, z0 = -p[0] * sr + p[2] * cr;
       const y = p[1] * ct - z0 * st, z = p[1] * st + z0 * ct;
@@ -211,7 +238,6 @@
       ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.283); ctx.fill();
       ctx.restore();
     }
-    drawFuture(ctx, cx, cy, R);
     if (!gl) {
       const limb = ctx.createRadialGradient(cx, cy, R * 0.55, cx, cy, R);
       limb.addColorStop(0, "rgba(0,0,0,0)"); limb.addColorStop(1, "rgba(0,0,0,0.55)");
@@ -225,37 +251,84 @@
         M: [cr, 0, sr, st * sr, ct, -st * cr, -ct * sr, st, ct * cr],
         map: cmbMap, cmb: cmb * 0.92, warm: 1 - ramp(logt, 13.1, 13.9), contrast: ramp(logt, 12.95, 13.2),
         logt, zNow: 1 / a - 1, fade,
+        // Schematic cosmic web: grows from the dark ages, sharpest at cosmic noon, then thins out.
+        web: 0.55 * ramp(logt, 15.4, 16.8) * (1 - 0.5 * ramp(logt, 17.2, 17.6)) * fade,
       });
     }
     const tctx = skyTop.getContext("2d");
     tctx.clearRect(0, 0, W, H);
+    tctx.save(); tctx.beginPath(); tctx.arc(cx, cy, R, 0, 6.283); tctx.clip();
+    drawHorizons(tctx, project, R);
+    tctx.restore();
+    if (logt > LOG_NOW) drawHorizonsLabel(tctx, R);
     if (window.EraInset && $("show-inset").checked) EraInset.draw(tctx, { W, H, cx, cy, R, era: C.era(t).id, logt, alpha: 1, now });
     if (window.PeaksChart && $("show-inset").checked) PeaksChart.draw(tctx, { W, H, alpha: ramp(logt, 12.95, 13.05) * (1 - ramp(logt, 15.2, 15.6)) });
   }
 
-  // The merged Milky Way and Andromeda ("Milkomeda") stays in view after the other galaxies
-  // leave; its stars die, the galaxy evaporates, and its central black hole finally pops.
-  function drawFuture(ctx, cx, cy, R) {
-    const on = ramp(logt, 17.9, 18.6), stars = 1 - ramp(logt, 20.6, 21.6), left = 1 - ramp(logt, 26.2, 26.8);
-    const glow = on * (0.25 + 0.75 * stars) * left;
-    if (glow > 0.01) {
-      const r = Math.max(3, R * 0.07), col = [lerp(255, 150, 1 - stars), lerp(236, 50, 1 - stars), lerp(205, 40, 1 - stars)];
-      ctx.save(); ctx.translate(cx, cy); ctx.rotate(-0.5); ctx.scale(1, 0.62);
-      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-      g.addColorStop(0, rgb([255, 248, 230].map((c, i) => lerp(c, col[i], 1 - stars)), glow));
-      g.addColorStop(0.3, rgb(col, 0.6 * glow)); g.addColorStop(1, rgb(col, 0));
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.283); ctx.fill();
-      ctx.restore();
-    }
+  // Future: a few galaxies scattered at random, each with its own event horizon. The rings shrink
+  // as dark energy carries everything else out of reach, the same for every galaxy, not just us.
+  const HOSTS = Array.from({ length: 8 }, (_, k) => {
+    // Spread over the whole sphere (Fibonacci spiral) with a little jitter so it isn't a lattice.
+    const z = 1 - (2 * k + 1) / 8 + 0.08 * Math.sin(k * 12.9898), th = k * 2.39996 + 0.6 * Math.sin(k * 78.233);
+    const rr = Math.sqrt(1 - z * z);
+    const p = [rr * Math.cos(th), z, rr * Math.sin(th)];
+    const e = Math.abs(p[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+    const a = [p[1] * e[2] - p[2] * e[1], p[2] * e[0] - p[0] * e[2], p[0] * e[1] - p[1] * e[0]];
+    const n = Math.hypot(...a), b0 = a.map((c) => c / n);
+    const b1 = [p[1] * b0[2] - p[2] * b0[1], p[2] * b0[0] - p[0] * b0[2], p[0] * b0[1] - p[1] * b0[0]];
+    return { p, b0, b1 };
+  });
+  const horizonAngle = (lt) => Math.min(1.3, Math.max(0.03, 1.3 * 10 ** (-1.2 * (lt - LOG_NOW))));
+  function drawHorizons(ctx, project, R) {
+    const on = ramp(logt, LOG_NOW + 0.02, LOG_NOW + 0.25);
+    if (on <= 0 || R < 8) return;
+    const ring = on * (1 - ramp(logt, 19.3, 19.8)), th = horizonAngle(logt), c = Math.cos(th), s = Math.sin(th);
+    const stars = 1 - ramp(logt, 20.6, 21.6), left = 1 - ramp(logt, 26.2, 26.8);
     const bh = ramp(logt, 21, 22) * (1 - ramp(logt, 105.5, 107.5)), flash = ramp(logt, 105.5, 107.5) * (1 - ramp(logt, 107.5, 109.5));
-    if (bh > 0.01) {
-      ctx.fillStyle = "#000"; ctx.strokeStyle = `rgba(190,150,255,${0.7 * bh})`; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(cx, cy, Math.max(2.5, R * 0.012), 0, 6.283); ctx.fill(); ctx.stroke(); ctx.lineWidth = 1;
+    const col = [lerp(255, 150, 1 - stars), lerp(236, 70, 1 - stars), lerp(205, 50, 1 - stars)];
+    for (const h of HOSTS) {
+      const [hx, hy, hz] = project(h.p);
+      if (ring > 0.01) {
+        ctx.strokeStyle = `rgba(150,200,255,${0.75 * ring})`; ctx.lineWidth = 1.4; ctx.beginPath();
+        let pen = false;
+        for (let k = 0; k <= 72; k++) {
+          const f = (k / 72) * 6.2832, cf = Math.cos(f) * s, sf = Math.sin(f) * s;
+          const [x, y, z] = project(h.p.map((v, i) => v * c + h.b0[i] * cf + h.b1[i] * sf));
+          if (z <= 0) { pen = false; continue; }
+          pen ? ctx.lineTo(x, y) : ctx.moveTo(x, y); pen = true;
+          // Outward ticks: light from beyond the ring can never reach this galaxy.
+          if (k % 12 === 0) {
+            const [x2, y2, z2] = project(h.p.map((v, i) => v * Math.cos(th * 1.25) + (h.b0[i] * Math.cos(f) + h.b1[i] * Math.sin(f)) * Math.sin(th * 1.25)));
+            if (z2 > 0) { ctx.moveTo(x, y); ctx.lineTo(x2, y2); ctx.moveTo(x, y); }
+          }
+        }
+        ctx.stroke(); ctx.lineWidth = 1;
+      }
+      if (hz <= 0) continue;
+      const glow = on * (0.25 + 0.75 * stars) * left * hz, r = Math.max(2.5, R * 0.022);
+      if (glow > 0.01) {
+        const g = ctx.createRadialGradient(hx, hy, 0, hx, hy, r);
+        g.addColorStop(0, rgb([255, 248, 230].map((v, i) => lerp(v, col[i], 1 - stars)), glow));
+        g.addColorStop(0.35, rgb(col, 0.6 * glow)); g.addColorStop(1, rgb(col, 0));
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(hx, hy, r, 0, 6.283); ctx.fill();
+      }
+      if (bh * hz > 0.01) {
+        ctx.fillStyle = "#000"; ctx.strokeStyle = `rgba(190,150,255,${0.7 * bh * hz})`; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(hx, hy, Math.max(2, R * 0.008), 0, 6.283); ctx.fill(); ctx.stroke(); ctx.lineWidth = 1;
+      }
+      if (flash * hz > 0.01) {
+        const g = ctx.createRadialGradient(hx, hy, 0, hx, hy, R * 0.05);
+        g.addColorStop(0, `rgba(255,255,255,${flash * hz})`); g.addColorStop(1, "rgba(200,170,255,0)");
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(hx, hy, R * 0.05, 0, 6.283); ctx.fill();
+      }
     }
-    if (flash > 0.01) {
-      const r = R * 0.08, g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      g.addColorStop(0, `rgba(255,255,255,${flash})`); g.addColorStop(1, "rgba(200,170,255,0)");
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.283); ctx.fill();
+  }
+  function drawHorizonsLabel(ctx, R) {
+    const ring = ramp(logt, LOG_NOW + 0.02, LOG_NOW + 0.25) * (1 - ramp(logt, 19.3, 19.8));
+    if (ring > 0.05 && R >= 8) {
+      ctx.fillStyle = `rgba(190,215,255,${0.8 * ring})`; ctx.font = "12px system-ui, sans-serif"; ctx.textAlign = "center";
+      ctx.fillText("Rings: each galaxy's event horizon. The same everywhere, not just around us.", view.cx, view.cy + R + 22);
+      ctx.textAlign = "start";
     }
   }
 
@@ -388,10 +461,13 @@
     while (n < HUDF_BORN.length && HUDF_BORN[n] <= lt) n++;
     if (gl && n > 0 && galFade(lt) > 0.05) {
       return ["Galaxies: Hubble Ultra Deep Field",
-        `Galaxies: Hubble Ultra Deep Field (ESA/Hubble heic0406a), NASA, ESA, S. Beckwith (STScI) and the HUDF Team, CC BY 4.0; redshifts from Rafelski et al. 2015. ${n} of ${HUDF_BORN.length} have appeared: each shows up when the light Hubble saw left it, in Hubble's colours, and looks bluer nearer the present as its redshift shrinks. Their places on the sphere are illustrative.`];
+        `Galaxies: Hubble Ultra Deep Field (ESA/Hubble heic0406a), NASA, ESA, S. Beckwith (STScI) and the HUDF Team, CC BY 4.0; redshifts from Rafelski et al. 2015. ${n} of ${HUDF_BORN.length} have appeared: each shows up when the light Hubble saw left it, in Hubble's colours, and looks bluer nearer the present as its redshift shrinks. Their places on the sphere are illustrative.${WEB_NOTE}`];
     }
+    if (gl && lt > 15.4 && lt < LOG_NOW) return ["Cosmic web: schematic", WEB_NOTE.trim()];
     return null;
   }
+
+  const WEB_NOTE = " The faint blue cosmic web of filaments and voids is a schematic (a random spherical Voronoi pattern), not survey data.";
 
   function setLogt(v, keepSelection = false) {
     logt = Math.min(LOG_MAX, Math.max(LOG_MIN, v));
