@@ -132,6 +132,30 @@
   }
   const resize = () => { fit(sky, skyDims); fit(skyTop, [0, 0]); fit(tl, tlDims); };
   window.addEventListener("resize", resize);
+
+  // Drag rotates the sphere, but only when the press lands on the sphere itself, so page scrolling
+  // (mouse wheel, trackpad, or touch outside the sphere) is left alone.
+  const view = { yaw: 0, pitch: 0.4, cx: 0, cy: 0, R: 0, drag: null, last: 0 };
+  const onSphere = (ev) => {
+    const r = skyTop.getBoundingClientRect();
+    return Math.hypot(ev.clientX - r.left - view.cx, ev.clientY - r.top - view.cy) <= Math.max(view.R, 12);
+  };
+  skyTop.addEventListener("pointerdown", (ev) => {
+    if (!onSphere(ev)) return;
+    view.drag = { x: ev.clientX, y: ev.clientY, yaw: view.yaw, pitch: view.pitch };
+    skyTop.setPointerCapture(ev.pointerId); ev.preventDefault();
+  });
+  skyTop.addEventListener("pointermove", (ev) => {
+    skyTop.style.cursor = view.drag ? "grabbing" : onSphere(ev) ? "grab" : "";
+    if (!view.drag) return;
+    const k = 1 / Math.max(view.R, 60);
+    view.yaw = view.drag.yaw - (ev.clientX - view.drag.x) * k;
+    view.pitch = Math.max(-1.45, Math.min(1.45, view.drag.pitch + (ev.clientY - view.drag.y) * k));
+  });
+  const endDrag = () => (view.drag = null);
+  skyTop.addEventListener("pointerup", endDrag); skyTop.addEventListener("pointercancel", endDrag);
+  // Touch: block the page's pan only for touches that start on the sphere.
+  skyTop.addEventListener("touchstart", (ev) => { if (onSphere(ev.touches[0])) ev.preventDefault(); }, { passive: false });
   // The stage also changes size when the side panel's text reflows, with no window resize event;
   // a canvas left at its old bitmap size is then stretched by CSS into an oval.
   if (window.ResizeObserver) new ResizeObserver(resize).observe(sky);
@@ -166,7 +190,10 @@
     ctx.fillStyle = body; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 6.283); ctx.fill();
 
     ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 6.283); ctx.clip();
-    const rot = now * 0.00006, cr = Math.cos(rot), sr = Math.sin(rot), tilt = 0.4, ct = Math.cos(tilt), st = Math.sin(tilt);
+    view.cx = cx; view.cy = cy; view.R = R;
+    if ($("spin").checked && !view.drag) view.yaw += 0.00006 * (now - (view.last || now));
+    view.last = now;
+    const rot = view.yaw, cr = Math.cos(rot), sr = Math.sin(rot), tilt = view.pitch, ct = Math.cos(tilt), st = Math.sin(tilt);
     const project = (p) => {
       const x = p[0] * cr + p[2] * sr, z0 = -p[0] * sr + p[2] * cr;
       const y = p[1] * ct - z0 * st, z = p[1] * st + z0 * ct;
@@ -211,7 +238,6 @@
       ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.283); ctx.fill();
       ctx.restore();
     }
-    drawFuture(ctx, cx, cy, R);
     if (!gl) {
       const limb = ctx.createRadialGradient(cx, cy, R * 0.55, cx, cy, R);
       limb.addColorStop(0, "rgba(0,0,0,0)"); limb.addColorStop(1, "rgba(0,0,0,0.55)");
