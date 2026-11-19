@@ -472,7 +472,7 @@
   const WEB_NOTE = " The faint blue cosmic web of filaments and voids is a schematic (a random spherical Voronoi pattern), not survey data.";
 
   // "i" note: what the sphere shows now, in plain words. [start log10(t / s), headline, bullets];
-  // a bullet given as [text, true] needs WebGL2 (the real sky images).
+  // a bullet given as [text, true] needs WebGL2 (the real sky images), [text, false] is for the fallback drawing.
   const ltYr = (yr) => Math.log10(C.fromNow(yr));
   const RING_NOTES = [
     "Each ring is the event horizon of the galaxy at its centre: light sent from beyond it from now on can never reach that galaxy.",
@@ -489,14 +489,19 @@
     [Math.log10(1200), "A glowing, opaque fog", ["Light keeps bouncing off free electrons, so the sphere glows evenly and nothing can be seen through it."]],
     [12.9, "The universe becomes transparent", []],
     [13.9, "The first light, mapped", [
-      "The pattern is the real sky map of the cosmic microwave background: the light released when the universe became transparent.",
-      "Colours are temperature differences of about 1 part in 25,000 (see the key). These ripples are the seeds gravity grows into galaxies.",
-      "When this light was released the universe was about 3,000 K, as hot as a red-hot ember. Expansion has since stretched it about 1,100 times, so we receive it today at 2.7 K, just above absolute zero: the same pattern, scaled down. The key's ±μK are today's values; at release they were about 1,100 times larger, a few tenths of a kelvin.",
+      ["The pattern is the real sky map of the cosmic microwave background: the light released when the universe became transparent.", true],
+      ["Colours are temperature differences of about 1 part in 25,000 (see the key, in today's μK; at release they were about 1,100 times larger, a few tenths of a kelvin). These ripples are the seeds gravity grows into galaxies.", true],
+      ["The mottled spots stand in for the cosmic microwave background's slightly hotter and cooler patches; this browser can't show the real maps (it lacks WebGL2).", false],
+      "When this light was released the universe was about 3,000 K, as hot as a red-hot ember. Expansion has since stretched it about 1,100 times, so we receive it today at 2.7 K, just above absolute zero: the same pattern, scaled down.",
       ["Switch between COBE, WMAP and Planck at the top right to see the same sky in finer and finer detail.", true],
       "Drag the sphere to turn it."]],
-    [15.4, "The first stars and galaxies light up", [
-      "The faint blue web is a schematic of the cosmic web: matter drains out of the voids into filaments, where galaxies form.",
-      ["The galaxies are real Hubble Ultra Deep Field images. Each appears when the light Hubble saw left it, and looks redder the further back it is.", true]]],
+    [15.4, "The first stars light up", [
+      "The bright dots are the first stars, forming where matter was densest.",
+      ["The faint blue web is a schematic of the cosmic web: matter drains out of the voids into filaments, where galaxies form.", true]]],
+    [HUDF ? HUDF_PLACED.minBorn : 15.95, "Galaxies light up", [
+      ["The galaxies are real Hubble Ultra Deep Field images. Each appears when the light Hubble saw left it, and looks redder the further back it is.", true],
+      ["The faint blue web is a schematic of the cosmic web; galaxies form along its filaments.", true],
+      ["The glowing smudges are galaxies, drawn as an illustration.", false]]],
     [16.9, "Galaxies everywhere, strung along the cosmic web", [
       ["Nearer today the galaxies' colours shift back toward blue as their redshift shrinks.", true],
       "Open View → Local structure, Milky Way or Solar system for a closer look."]],
@@ -506,13 +511,13 @@
     [ltYr(1e20), "Black holes rule", ["The purple-rimmed dots are the black holes left at each galaxy's centre."]],
     [ltYr(1e95), "Black holes evaporate", ["Each flash is a galaxy's central black hole finishing its slow Hawking evaporation."]],
     [ltYr(1e100), "Empty space, expanding forever", []],
-  ];
+  ].sort((a, b) => a[0] - b[0]);
   const info = $("info"), infoBtn = $("info-btn");
   let infoKey = "";
   function updateInfo() {
     if (info.hidden) return;
     const [, title, bullets] = INFO.filter(([lt]) => lt <= logt + 1e-9).pop() || INFO[0];
-    const items = bullets.filter((b) => !Array.isArray(b) || (b[1] && gl)).map((b) => (Array.isArray(b) ? b[0] : b));
+    const items = bullets.filter((b) => !Array.isArray(b) || b[1] === !!gl).map((b) => (Array.isArray(b) ? b[0] : b));
     const key = title + items.join();
     if (key === infoKey) return;
     infoKey = key;
