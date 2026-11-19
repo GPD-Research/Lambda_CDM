@@ -261,8 +261,10 @@
     drawHorizons(tctx, project, R);
     tctx.restore();
     if (logt > LOG_NOW) drawHorizonsLabel(tctx, R);
-    if (window.EraInset && $("show-inset").checked) EraInset.draw(tctx, { W, H, cx, cy, R, era: C.era(t).id, logt, alpha: 1, now });
-    if (window.PeaksChart && $("show-inset").checked) PeaksChart.draw(tctx, { W, H, alpha: ramp(logt, 12.95, 13.05) * (1 - ramp(logt, 15.2, 15.6)) });
+    // A View-menu inset takes the corner it shares with a zoom-in diagram.
+    const zoom = $("show-inset").checked, right = $("view-mw").checked || $("view-sun").checked;
+    if (window.EraInset && zoom && !right) EraInset.draw(tctx, { W, H, cx, cy, R, era: C.era(t).id, logt, alpha: 1, now });
+    if (window.PeaksChart && zoom && !$("view-local").checked) PeaksChart.draw(tctx, { W, H, alpha: ramp(logt, 12.95, 13.05) * (1 - ramp(logt, 15.2, 15.6)) });
   }
 
   // Future: a few galaxies scattered at random, each with its own event horizon. The rings shrink
@@ -500,6 +502,9 @@
       if (logt >= LOG_MAX || logt === LOG_NOW) { playing = false; $("play").textContent = "Play"; }
     }
     drawSky(now); drawTimeline();
+    const shown = { "vi-local": $("view-local").checked, "vi-mw": $("view-mw").checked, "vi-sun": $("view-sun").checked };
+    if (window.Views) Views.draw(logt, now, shown);
+    $("legend").style.visibility = Object.values(shown).some(Boolean) ? "hidden" : "";
     const onSky = gl && cmbLevel(logt) > 0.05;
     pickMap.parentElement.style.visibility = onSky ? "" : "hidden";
     // The key matches the map colours, shown once the fresh orange glow (drawSky: warm, until 13.9) has fully given way to them.
@@ -510,6 +515,11 @@
   const hash = new URLSearchParams(location.hash.slice(1)), fromHash = Number(hash.get("t"));
   if (hash.has("t") && Number.isFinite(fromHash)) logt = Math.min(LOG_MAX, Math.max(LOG_MIN, fromHash));
   if (MAPS[`cmb_${hash.get("map")}`]) cmbMap = `cmb_${hash.get("map")}`;
+  // #view=local,mw,sun opens those insets; #tab=density or laniakea picks the local-structure view.
+  for (const v of (hash.get("view") || "").split(",")) if ($(`view-${v}`)) $(`view-${v}`).checked = true;
+  if (window.Views) { Views.init(); if (hash.get("tab")) Views.setTab(hash.get("tab")); }
+  const menu = $("view-menu");
+  document.addEventListener("pointerdown", (ev) => { if (menu.open && !menu.contains(ev.target)) menu.open = false; });
   const pickMap = $("cmb-map");
   const syncKey = () => { const r = SKY[cmbMap] ? SKY[cmbMap].rangeMicroK : 0; $("key-lo").textContent = `−${r} μK`; $("key-hi").textContent = `+${r} μK`; };
   if (gl) {
