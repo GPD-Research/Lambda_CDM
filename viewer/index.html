@@ -18,7 +18,7 @@
   #ov-src { font-size: 12px; color: var(--dim); margin-top: 4px; text-shadow: 0 0 8px #000; }
   #map-pick { position: absolute; right: 14px; top: 12px; color: var(--dim); font-size: 12px; display: flex; gap: 6px; align-items: center; }
   #map-pick select { background: #18203d; color: var(--ink); border: 1px solid #2a3563; border-radius: 6px; padding: 3px 6px; font: inherit; }
-  #cmb-key { position: absolute; right: 14px; top: 68px; width: 210px; color: var(--dim); font-size: 11px; text-align: center; pointer-events: none; text-shadow: 0 0 6px #000; }
+  #cmb-key { position: absolute; right: 14px; top: 70px; width: 210px; color: var(--dim); font-size: 11px; text-align: center; pointer-events: none; text-shadow: 0 0 6px #000; }
   #cmb-key .bar { height: 9px; border-radius: 4px; margin: 3px 0 2px; border: 1px solid rgba(255,255,255,.25);
     background: linear-gradient(90deg, #0000ff, #0070ff, #00deff, #ffedd9, #ffb51f, #ff4a00, #640000); }
   #cmb-key .ends { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
@@ -56,7 +56,29 @@
   #keys i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
   #note { grid-column: 1 / -1; color: var(--dim); font-size: 12px; }
   @media (max-width: 980px) { main { grid-template-columns: 1fr; } #stage { min-height: 400px; } aside { order: 1; } #note { order: 2; } }
-  #toggles { position: absolute; right: 14px; top: 42px; display: flex; gap: 12px; color: var(--dim); font-size: 12px; user-select: none; }
+  #view-menu { position: absolute; right: 14px; top: 40px; z-index: 5; font-size: 12px; color: var(--dim); user-select: none; }
+  #view-menu summary { list-style: none; cursor: pointer; background: #18203d; color: var(--ink); border: 1px solid #2a3563; border-radius: 6px; padding: 2px 10px; text-align: right; width: max-content; margin-left: auto; }
+  #view-menu summary::-webkit-details-marker { display: none; }
+  #view-menu summary::after { content: " ▾"; color: var(--dim); }
+  #view-menu .vm-list { position: absolute; right: 0; margin-top: 4px; background: var(--panel); border: 1px solid #2a3563; border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; white-space: nowrap; box-shadow: 0 6px 20px #0008; }
+  #view-menu .vm-list label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  #view-menu hr { border: 0; border-top: 1px solid var(--line); margin: 2px 0; width: 100%; }
+  .vi { position: absolute; z-index: 2; display: flex; flex-direction: column; background: rgba(5,6,14,0.92); border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; padding: 6px 8px; font-size: 11px; line-height: 1.3; color: var(--dim); overflow: hidden; }
+  .vi[hidden] { display: none; }
+  .vi-h { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; color: var(--dim); text-transform: uppercase; letter-spacing: .06em; font-size: 10px; }
+  .vi-t { color: var(--ink); font-size: 12px; font-weight: 600; margin-top: 1px; }
+  .vi canvas { flex: 1; min-height: 0; width: 100%; display: block; }
+  .vi-c { margin-top: 3px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
+  /* On a small stage the insets keep their pictures and titles; the captions would crowd them out. */
+  @container (max-width: 720px) or (max-height: 460px) { .vi-c, .vi-h > span:first-child { display: none; } .vi-h { justify-content: flex-end; } }
+  .vi-tabs { display: flex; gap: 3px; text-transform: none; letter-spacing: 0; }
+  .vi-tabs button { padding: 1px 6px; font-size: 10px; border-radius: 5px; }
+  .vi-tabs button.on { background: #2f3f80; border-color: #4a5cb0; }
+  /* Local structure is about a quarter of the stage, the Milky Way and solar system a sixth each. */
+  #vi-local { left: 12px; bottom: 12px; width: calc(50% - 18px); height: calc(50% - 12px); }
+  #vi-mw, #vi-sun { right: 12px; width: 40%; height: min(40%, calc(50% - 66px)); }
+  #vi-mw { top: 108px; }
+  #vi-sun { bottom: 12px; }
   /* On a short stage the legend would sit under the zoom-in diagrams; the note below says the same. */
   #stage { container-type: size; }
   @container (max-height: 440px) { #legend { display: none; } }
@@ -77,7 +99,17 @@
     <canvas id="sky"></canvas>
     <canvas id="sky-gl"></canvas>
     <canvas id="sky-top"></canvas>
-    <div id="toggles"><label><input type="checkbox" id="show-inset" checked> Zoom-in diagrams</label><label><input type="checkbox" id="spin"> Spin</label></div>
+    <details id="view-menu"><summary>View</summary><div class="vm-list">
+      <label><input type="checkbox" id="show-inset" checked> Zoom-in diagrams</label>
+      <label><input type="checkbox" id="spin"> Spin</label>
+      <hr>
+      <label><input type="checkbox" id="view-local"> Local structure</label>
+      <label><input type="checkbox" id="view-mw"> Milky Way</label>
+      <label><input type="checkbox" id="view-sun"> Solar system</label>
+    </div></details>
+    <div class="vi" id="vi-local" hidden><div class="vi-h"><span>Local structure</span><span class="vi-tabs"><button data-tab="web" class="on">3-D web</button><button data-tab="density">Density map</button><button data-tab="laniakea">Laniakea</button></span></div><div class="vi-t"></div><canvas></canvas><div class="vi-c"></div></div>
+    <div class="vi" id="vi-mw" hidden><div class="vi-h"><span>Milky Way · top down</span></div><div class="vi-t"></div><canvas></canvas><div class="vi-c"></div></div>
+    <div class="vi" id="vi-sun" hidden><div class="vi-h"><span>Solar system · top down</span></div><div class="vi-t"></div><canvas></canvas><div class="vi-c"></div></div>
     <div id="overlay"><div class="era" id="ov-era"></div><div class="time" id="ov-time"></div><div id="ov-src"></div></div>
     <label id="map-pick">CMB map <select id="cmb-map"><option value="cobe">COBE DMR (1992)</option><option value="wmap">WMAP 9-year (2012)</option><option value="planck">Planck (2015)</option></select></label>
     <div id="cmb-key">Difference from the mean 2.7255 K<div class="bar"></div><div class="ends"><span id="key-lo"></span><span>0</span><span id="key-hi"></span></div></div>
@@ -132,6 +164,7 @@
 <script src="skygl.js"></script>
 <script src="inset.js"></script>
 <script src="peaks.js"></script>
+<script src="views.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
