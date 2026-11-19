@@ -23,6 +23,7 @@ INFLATION_EFOLDS = 60.0
 
 H0_PER_S = core.H0_DEFAULT / MPC_KM
 OM, OR, OL = core.OMEGA_M0, core.OMEGA_R0, core.OMEGA_L0
+OB = 0.0493  # Planck 2018: Omega_b h^2 = 0.0224; dark matter is OM - OB
 
 
 def _t_radiation(a):
@@ -103,7 +104,19 @@ def density_fractions(a):
     """Share of the energy density in radiation, matter and dark energy."""
     r, m, lam = OR / a**4, OM / a**3, OL
     total = r + m + lam
-    return {"radiation": r / total, "matter": m / total, "dark_energy": lam / total}
+    return {
+        "radiation": r / total,
+        "matter": m / total,
+        "dark_matter": m * (1.0 - OB / OM) / total,
+        "ordinary_matter": m * OB / OM / total,
+        "dark_energy": lam / total,
+    }
+
+
+def deceleration(a):
+    """Deceleration parameter q: positive while the expansion slows, negative while it speeds up."""
+    f = density_fractions(a)
+    return f["radiation"] + f["matter"] / 2.0 - f["dark_energy"]
 
 
 ERA_STARTS = [

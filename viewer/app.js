@@ -353,7 +353,11 @@
     $("r-size").textContent = lsize > 300 ? `10^(${num(lsize)}) light-years` : fmtLength(OBSERVABLE_RADIUS_M * a);
     const f = C.densityFractions(a);
     const rows = inflating ? [["Inflaton field", 1, "#c084fc"]]
-      : [["Radiation", f.radiation, "#fbbf24"], ["Matter", f.matter, "#60a5fa"], ["Dark energy Λ", f.dark_energy, "#a78bfa"]];
+      : [["Radiation", f.radiation, "#fbbf24"], ["Dark matter", f.dark_matter, "#3b82f6"],
+        ["Ordinary matter", f.ordinary_matter, "#93c5fd"], ["Dark energy Λ", f.dark_energy, "#a78bfa"]];
+    const q = C.deceleration(a);
+    $("r-exp").textContent = inflating || q < 0 ? "Speeding up" : "Slowing down";
+    $("r-q").textContent = inflating ? "≈ −1" : q.toFixed(2).replace("-", "−");
     $("bars").innerHTML = rows.map(([n, v, c]) => `<div class="bar"><span>${n}</span><div class="track"><div class="fill" style="width:${(100 * v).toFixed(1)}%;background:${c}"></div></div><span class="pct">${v < 0.001 && v > 0 ? "<0.1" : (100 * v).toFixed(1)}%</span></div>`).join("");
     if (inflating) {
       $("eq-h").innerHTML = "H ≈ constant, a ∝ e<sup>Ht</sup>";

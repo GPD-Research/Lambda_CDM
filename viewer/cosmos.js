@@ -8,6 +8,8 @@
 (function (root) {
   const MPC_KM = 3.085677581e19, YEAR = 3.15576e7, T_CMB0 = 2.7255;
   const H0 = 67.4, Om = 0.315, Or = 9.2e-5, Ol = 1 - Om - Or;
+  // Planck 2018: Omega_b h^2 = 0.0224, so ordinary matter is 0.0493 and dark matter the rest of Om.
+  const Ob = 0.0493;
   const h0 = H0 / MPC_KM;
   const A_LOW = 1e-12, INF_START = 1e-36, INF_END = 1e-32, EFOLDS = 60;
 
@@ -72,7 +74,17 @@
 
   function densityFractions(a) {
     const r = Or / a ** 4, m = Om / a ** 3, total = r + m + Ol;
-    return { radiation: r / total, matter: m / total, dark_energy: Ol / total };
+    return {
+      radiation: r / total, matter: m / total, dark_matter: (m * (1 - Ob / Om)) / total,
+      ordinary_matter: (m * Ob / Om) / total, dark_energy: Ol / total,
+    };
+  }
+
+  // Deceleration parameter q = -a a'' / a'^2 = Omega_r + Omega_m / 2 - Omega_Lambda (shares at a):
+  // positive while gravity slows the expansion, negative once dark energy speeds it up.
+  function deceleration(a) {
+    const f = densityFractions(a);
+    return f.radiation + f.matter / 2 - f.dark_energy;
   }
 
   const ERAS = [
@@ -142,6 +154,9 @@
     { id: "bao", t: timeOfRedshift(1060), name: "Baryon acoustic oscillations", status: "verified",
       predicted: "Sound waves frozen in at this moment leave a preferred ~150 Mpc spacing between galaxies.",
       evidence: "Detected in galaxy clustering by SDSS and 2dFGRS (2005). DESI (2024) measures it to sub-percent precision." },
+    { id: "darkmatter", t: timeOfRedshift(100), name: "Dark matter seeds structure", status: "partial",
+      predicted: "Cold matter that does not interact with light, about 5.4 times the ordinary matter. Its clumps kept growing while the plasma was opaque, so once the CMB is released the gas falls into them and galaxies can form in time.",
+      evidence: "Cluster motions (Zwicky, 1933), galaxy rotation curves (Rubin and Ford, 1970s), gravitational lensing and the Bullet Cluster (2006), and the CMB's third peak (Planck: Ω_c h² = 0.120 ± 0.001). What it is remains unknown: no dark-matter particle has been detected (LZ, XENONnT, LHC)." },
     { id: "firststars", t: 1.5e8 * YEAR, name: "First stars", status: "partial",
       predicted: "Population III stars of pure hydrogen and helium form in dark-matter halos about 100–200 million years in.",
       evidence: "JWST sees galaxies by ~290 million years (JADES-GS-z14-0, z = 14.3), brighter than many models expected. Pure Population III stars are not yet confirmed." },
@@ -184,8 +199,8 @@
   ];
 
   const api = {
-    YEAR, T_CMB0, T_DE_SITTER, AGE, A_LOW, A_ACC, A_LAMBDA_EQ, A_INF_END, INF_START, INF_END, Om, Or, Ol,
-    hubble, cosmicTime, timeOfRedshift, scaleFactor, lnScaleFactor, fromNow, temperature, densityFractions, era, ERAS, EVENTS,
+    YEAR, T_CMB0, Ob, T_DE_SITTER, AGE, A_LOW, A_ACC, A_LAMBDA_EQ, A_INF_END, INF_START, INF_END, Om, Or, Ol,
+    hubble, cosmicTime, timeOfRedshift, scaleFactor, lnScaleFactor, fromNow, temperature, densityFractions, deceleration, era, ERAS, EVENTS,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Cosmos = api;
