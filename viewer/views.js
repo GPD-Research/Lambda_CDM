@@ -453,5 +453,5 @@
       if (t + c !== p.last) { p.title.textContent = t; p.cap.textContent = c; p.last = t + c; }
     }
   }
-  root.Views = { init, draw, setTab: (t) => { const b = document.querySelector(`#vi-local [data-tab="${t}"]`); if (b) b.click(); } };
+  root.Views = { init, draw, setTab: (t) => { if (t in LOCAL_CAP) document.querySelector(`#vi-local [data-tab="${t}"]`).click(); } };
 })(this);
