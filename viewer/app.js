@@ -469,7 +469,7 @@
     return null;
   }
 
-  const WEB_NOTE = " The faint blue cosmic web of filaments and voids is a schematic (a random spherical Voronoi pattern), not survey data.";
+  const WEB_NOTE = " The faint blue cosmic web of filaments and voids is a schematic (a random spherical Voronoi pattern), not survey data. For the real pattern, see the Sloan Digital Sky Survey's maps at sdss.org.";
 
   // "i" note: what the sphere shows now, in plain words. [start log10(t / s), headline, bullets];
   // a bullet given as [text, true] needs WebGL2 (the real sky images), [text, false] is for the fallback drawing.
@@ -490,14 +490,14 @@
     [12.9, "The universe becomes transparent", []],
     [13.9, "The first light, mapped", [
       ["The pattern is the real sky map of the cosmic microwave background: the light released when the universe became transparent.", true],
-      ["Colours are temperature differences of about 1 part in 25,000 (see the key, in today's μK; at release they were about 1,100 times larger, a few tenths of a kelvin). These ripples are the seeds gravity grows into galaxies.", true],
+      ["Colours are temperature differences of about 1 part in 25,000 (see the key, in today's μK; at release they were about 1,100 times larger). These ripples are the seeds gravity grows into galaxies.", true],
       ["The mottled spots stand in for the cosmic microwave background's slightly hotter and cooler patches; this browser can't show the real maps (it lacks WebGL2).", false],
       "When this light was released the universe was about 3,000 K, as hot as a red-hot ember. Expansion has since stretched it about 1,100 times, so we receive it today at 2.7 K, just above absolute zero: the same pattern, scaled down.",
       ["Switch between COBE, WMAP and Planck at the top right to see the same sky in finer and finer detail.", true],
       "Drag the sphere to turn it."]],
     [15.4, "The first stars light up", [
       "The bright dots are the first stars, forming where matter was densest.",
-      ["The faint blue web is a schematic of the cosmic web: matter drains out of the voids into filaments, where galaxies form.", true]]],
+      ["The faint blue web is a schematic of the cosmic web: matter drains out of the voids into filaments, where galaxies form. The Sloan Digital Sky Survey (sdss.org) maps the real pattern.", true]]],
     [gl && HUDF ? HUDF_PLACED.minBorn : 15.95, "Galaxies light up", [
       ["The galaxies are real Hubble Ultra Deep Field images. Each appears when the light Hubble saw left it, and looks redder the further back it is.", true],
       ["The faint blue web is a schematic of the cosmic web; galaxies form along its filaments.", true],
