@@ -20,7 +20,7 @@ from PIL import Image, ImageFilter
 OUT = Path(__file__).resolve().parents[1] / "assets" / "cosmic_web.js"
 
 
-def main(width: int = 2048, cells: int = 900, seed: int = 7) -> None:
+def main(width: int = 2048, cells: int = 1400, seed: int = 7) -> None:
     rng = np.random.default_rng(seed)
     seeds = rng.normal(size=(cells, 3))
     seeds /= np.linalg.norm(seeds, axis=1, keepdims=True)
@@ -35,9 +35,14 @@ def main(width: int = 2048, cells: int = 900, seed: int = 7) -> None:
         top = np.partition(-dots, 1, axis=1)[:, :2]
         d[i : i + 65536] = np.sort(np.arccos(np.clip(-top, -1, 1)), axis=1)
     gap = (d[:, 1] - d[:, 0]).reshape(h, width)
-    web = np.exp(-((gap / 0.012) ** 2))
-    knots = np.exp(-((gap / 0.03) ** 2)) * rng.random((h, width)) ** 8
-    img = np.clip(255 * (0.85 * web + 0.6 * knots), 0, 255).astype(np.uint8)
+    # Filament strength varies smoothly over the sky, so some walls are bright and most faint.
+    lobes = rng.normal(size=(40, 3))
+    lobes /= np.linalg.norm(lobes, axis=1, keepdims=True)
+    amp = (np.exp(6 * (p @ lobes.T - 1)) @ rng.random(40)).reshape(h, width)
+    amp = 0.25 + 0.75 * amp / amp.max()
+    web = amp * np.exp(-((gap / (0.006 + 0.01 * amp)) ** 2))
+    # Clusters where three or more cells meet: the third-nearest seed is almost as close.
+    img = np.clip(255 * web, 0, 255).astype(np.uint8)
     im = Image.fromarray(img, "L").filter(ImageFilter.GaussianBlur(1.2))
     buf = io.BytesIO()
     im.save(buf, "JPEG", quality=85)
