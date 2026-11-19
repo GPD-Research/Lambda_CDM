@@ -502,8 +502,8 @@
     drawSky(now); drawTimeline();
     const onSky = gl && cmbLevel(logt) > 0.05;
     pickMap.parentElement.style.visibility = onSky ? "" : "hidden";
-    // The key matches the map colours, shown once the fresh orange glow has given way to them.
-    $("cmb-key").style.visibility = onSky && logt > 13.5 ? "" : "hidden";
+    // The key matches the map colours, shown once the fresh orange glow (drawSky: warm, until 13.9) has fully given way to them.
+    $("cmb-key").style.visibility = onSky && logt >= 13.9 ? "" : "hidden";
     requestAnimationFrame(loop);
   }
 
