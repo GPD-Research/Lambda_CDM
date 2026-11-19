@@ -55,7 +55,7 @@
 </style>
 </head>
 <body>
-<header><h1>ΛCDM: History of the Universe</h1><span>From 10⁻³⁶ seconds to today, with the Planck 2018 parameters in <code>Lambda_CDM/src/core.py</code></span></header>
+<header><h1>ΛCDM: History of the Universe</h1><span>From 10⁻³⁶ seconds to 10¹¹⁰ years from now, with the Planck 2018 parameters in <code>Lambda_CDM/src/core.py</code></span></header>
 <main>
   <section id="stage">
     <canvas id="sky"></canvas>
@@ -93,7 +93,7 @@
     <button id="play">Play</button>
     <button id="prev">◀ Event</button>
     <button id="next">Event ▶</button>
-    <input type="range" id="t-slider" min="-36" max="17.64" step="0.01" value="-36" aria-label="Time (log scale)">
+    <input type="range" id="t-slider" min="0" max="1" step="0.0002" value="0" aria-label="Time (log scale)">
     <label>Speed <input type="range" id="speed" min="0.1" max="4" step="0.1" value="1"> <b id="speed-v"></b></label>
   </div>
   <div id="timeline-wrap">
@@ -101,7 +101,7 @@
     <div id="keys"></div>
     <div id="tip"></div>
   </div>
-  <p id="note">Time runs on a log scale because most of the action happens in the first million years. Temperature uses T = T₀/a with T₀ = 2.7255 K. Inflation is drawn as 60 e-folds ending at 10⁻³² s; the physics before ~10⁻¹² s is extrapolated, not tested at those energies. The universe may be much larger than the observable patch shown.</p>
+  <p id="note">Time runs on a log scale because most of the action happens in the first million years. Right of the white line is the future, on a log scale of time after today that is squeezed further past 10¹⁹ years; playback pauses at today. Temperature uses T = T₀/a with T₀ = 2.7255 K. Inflation is drawn as 60 e-folds ending at 10⁻³² s; the physics before ~10⁻¹² s is extrapolated, not tested at those energies. The universe may be much larger than the observable patch shown.</p>
 </main>
 <script src="assets/cmb_cobe.js"></script>
 <script src="assets/cmb_wmap.js"></script>

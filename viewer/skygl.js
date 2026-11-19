@@ -46,14 +46,14 @@
 
   const GAL_VS = `#version 300 es
   in vec3 aP, aE1, aE2; in vec2 aCorner; in vec4 aUV; in vec3 aBorn;
-  uniform mat3 uInv; uniform vec2 uC, uView; uniform float uR, uLogt, uZnow;
+  uniform mat3 uInv; uniform vec2 uC, uView; uniform float uR, uLogt, uZnow, uFade;
   out vec2 vUV; out float vA, vShift;
   void main() {
     vec3 v = (aP + aCorner.x * aE1 + aCorner.y * aE2) * uInv;
     vec2 s = uC + uR * v.xy;
     gl_Position = vec4(2.0 * s.x / uView.x - 1.0, 1.0 - 2.0 * s.y / uView.y, 0.0, 1.0);
     float zc = (aP * uInv).z;
-    vA = smoothstep(aBorn.x - 0.03, aBorn.x + 0.03, uLogt) * smoothstep(0.0, 0.3, zc) * aBorn.z;
+    vA = smoothstep(aBorn.x - 0.03, aBorn.x + 0.03, uLogt) * smoothstep(0.0, 0.3, zc) * aBorn.z * uFade;
     // At the moment its light left it the galaxy looks as Hubble saw it; nearer the present
     // the cosmological redshift shrinks, so the colours shift back toward blue.
     float zg = aBorn.y;
@@ -174,7 +174,7 @@
         gl.uniform1f(sphere.u.uWarm, s.warm); gl.uniform1f(sphere.u.uContrast, s.contrast);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       }
-      if (atlas && placements.length && s.logt > placements.minBorn - 0.05) {
+      if (atlas && placements.length && s.logt > placements.minBorn - 0.05 && s.fade > 0.002) {
         gl.useProgram(gal.p); gl.bindVertexArray(galVao);
         gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, atlas);
@@ -182,6 +182,7 @@
         gl.uniformMatrix3fv(gal.u.uInv, false, M);
         gl.uniform2f(gal.u.uC, s.cx, s.cy); gl.uniform2f(gal.u.uView, s.W, s.H);
         gl.uniform1f(gal.u.uR, s.R); gl.uniform1f(gal.u.uLogt, s.logt); gl.uniform1f(gal.u.uZnow, s.zNow);
+        gl.uniform1f(gal.u.uFade, s.fade);
         gl.drawArrays(gl.TRIANGLES, 0, placements.length * 6);
       }
       gl.useProgram(sphere.p); gl.bindVertexArray(quad);
