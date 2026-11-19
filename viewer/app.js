@@ -329,7 +329,7 @@
     const ring = ramp(logt, LOG_NOW + 0.02, LOG_NOW + 0.25) * (1 - ramp(logt, 19.3, 19.8));
     if (ring > 0.05 && R >= 8) {
       ctx.fillStyle = `rgba(190,215,255,${0.8 * ring})`; ctx.font = "12px system-ui, sans-serif"; ctx.textAlign = "center";
-      ctx.fillText("Rings: each galaxy's event horizon. The same everywhere, not just around us.", view.cx, view.cy + R + 22);
+      ctx.fillText("Rings: each galaxy's event horizon (more under i)", view.cx, view.cy + R + 22);
       ctx.textAlign = "start";
     }
   }
