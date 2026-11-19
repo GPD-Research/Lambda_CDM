@@ -219,7 +219,7 @@
     const cool = ramp(lt, lf(1e10), lf(1e15)), swell = 1 + 0.3 * ramp(lt, lf(7.6e9), lf(8.5e9));
     const strip = ramp(lt, lf(1e15), lf(1e17));
     const r0 = 5 * s, rGiant = R * 0.22;
-    const sunR = lerp(lerp(r0, rGiant, giant ** 2.5), 2 * s, ramp(neb, 0, 0.25));
+    const giantR = lerp(r0, rGiant, giant ** 2.5), sunR = lerp(giantR, 2 * s, ramp(neb, 0, 0.25));
     let sunC = mix([255, 240, 170], [255, 110, 50], giant);
     sunC = mix(sunC, [235, 240, 255], ramp(neb, 0, 0.3));
     sunC = mix(mix(sunC, [255, 150, 90], ramp(cool, 0, 0.6)), [60, 20, 20], ramp(cool, 0.5, 1));
@@ -253,7 +253,8 @@
     if (planets > 0) {
       const boil = ramp(lt, lf(6e8), lf(1.5e9));
       for (const p of PLANETS) {
-        const gone = p.a * R < sunR * 1.05 || (p.n === "Earth" && giant > 0.97);
+        // Swallowed at the giant's peak size, so they stay gone once it shrinks to a white dwarf.
+        const gone = p.a * R < giantR * 1.05 || (p.n === "Earth" && giant > 0.97);
         if (gone) continue;
         const orbit = R * p.a * swell * (1 + 2 * strip), a = p.ph + now * 2e-4 / p.a ** 1.5;
         const al = planets * (1 - strip);
@@ -289,39 +290,39 @@
     });
     for (const [a, b] of links) {
       const A = all[a], B = all[b], n = Math.round(Math.hypot(B[0] - A[0], B[1] - A[1], B[2] - A[2]) * 0.9);
-      for (let k = 0; k < n; k++) { const f = r(); pts.push([lerp(A[0], B[0], f) + 2.5 * gauss(r), lerp(A[1], B[1], f) + 2.5 * gauss(r), lerp(A[2], B[2], f) + 2.5 * gauss(r), r(), a === 0 || b === 0 ? 0 : 1]); }
+      for (let k = 0; k < n; k++) { const f = r(); pts.push([lerp(A[0], B[0], f) + 2.5 * gauss(r), lerp(A[1], B[1], f) + 2.5 * gauss(r), lerp(A[2], B[2], f) + 2.5 * gauss(r), r(), 1]); }
     }
     all.forEach((p, i) => { const m = i < NODES.length ? NODES[i][4] : 0.5; for (let k = 0; k < 60 * m; k++) pts.push([p[0] + 3.5 * m * gauss(r), p[1] + 3.5 * m * gauss(r), p[2] + 3.5 * m * gauss(r), r(), i === 0 ? 0 : 1]); });
     for (let k = 0; k < 120; k++) pts.push([-140 + 220 * r(), -60 + 150 * r(), -40 + 80 * r(), r(), 1]);
     return { pts, all, links };
   })();
-  const density = (x, y, grow, sp) => {
+  const density = (x, y, grow, sp, far) => {
     let d = 0;
     WEB.all.forEach((p, i) => {
       const m = i < NODES.length ? NODES[i][4] : 0.5, k = i === 0 ? 1 : sp, dx = x - p[0] * k, dy = y - p[1] * k, s2 = 2 * (5 * m) ** 2;
-      d += 1.6 * m * Math.exp(-(dx * dx + dy * dy) / s2);
+      d += (i === 0 ? 1 : far) * 1.6 * m * Math.exp(-(dx * dx + dy * dy) / s2);
     });
     for (const [a, b] of WEB.links) {
       const A = WEB.all[a], B = WEB.all[b], ka = a === 0 ? 1 : sp, kb = b === 0 ? 1 : sp;
       const ax = A[0] * ka, ay = A[1] * ka, bx = B[0] * kb, by = B[1] * kb, vx = bx - ax, vy = by - ay;
       const f = Math.max(0, Math.min(1, ((x - ax) * vx + (y - ay) * vy) / (vx * vx + vy * vy)));
       const dx = x - ax - f * vx, dy = y - ay - f * vy;
-      d += 0.35 * Math.exp(-(dx * dx + dy * dy) / 40);
+      d += far * 0.35 * Math.exp(-(dx * dx + dy * dy) / 40);
     }
     return grow * d;
   };
   const DENS_C = [[0, [10, 20, 70]], [0.15, [30, 70, 170]], [0.35, [60, 170, 220]], [0.55, [240, 240, 230]], [0.8, [255, 190, 70]], [1, [220, 60, 40]]];
   const dcol = (v) => { for (let i = 1; i < DENS_C.length; i++) if (v <= DENS_C[i][0]) { const [a, c0] = DENS_C[i - 1], [b, c1] = DENS_C[i]; return mix(c0, c1, (v - a) / (b - a)); } return DENS_C[DENS_C.length - 1][1]; };
   let densCache = null;
-  function densityImage(w, h, grow, sp, box) {
-    const key = `${w}|${h}|${grow.toFixed(2)}|${sp.toFixed(2)}`;
+  function densityImage(w, h, grow, sp, far, box) {
+    const key = `${w}|${h}|${grow.toFixed(2)}|${sp.toFixed(2)}|${far.toFixed(2)}`;
     if (densCache && densCache.key === key) return densCache.cv;
     const gw = Math.max(40, Math.round(w / 3)), gh = Math.max(30, Math.round(h / 3));
     const cv = densCache ? densCache.cv : document.createElement("canvas"); cv.width = gw; cv.height = gh;
     const g = cv.getContext("2d"), img = g.createImageData(gw, gh);
     for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
       const [x, y] = box.inv((i + 0.5) / gw * w, (j + 0.5) / gh * h);
-      const c = dcol(Math.min(1, Math.log1p(4 * density(x, y, grow, sp)) / Math.log1p(8)));
+      const c = dcol(Math.min(1, Math.log1p(4 * density(x, y, grow, sp, far)) / Math.log1p(8)));
       const o = 4 * (j * gw + i); img.data[o] = c[0]; img.data[o + 1] = c[1]; img.data[o + 2] = c[2]; img.data[o + 3] = 255;
     }
     g.putImageData(img, 0, 0);
@@ -370,7 +371,8 @@
       const yaw = now * 1.2e-4, tilt = 0.45, cy = Math.cos(yaw), sy = Math.sin(yaw), ct = Math.cos(tilt), st = Math.sin(tilt);
       const k = Math.min(w / 190, h / 95), cx0 = w / 2, cy0 = h / 2;
       const P = (p, own) => {
-        const m = own ? 1 : sp, x = (p[0] + 30) * m - 30 * (own ? 1 : 0), y = (p[1] - 15) * m, z = p[2] * m;
+        // Expand about the Local Group, then centre the scene with one shared shift.
+        const m = own ? 1 : sp, x = p[0] * m + 30, y = p[1] * m - 15, z = p[2] * m;
         const X = x * cy - y * sy, Y = x * sy + y * cy;
         return [cx0 + k * X, cy0 - k * (z * ct - Y * st), Y];
       };
@@ -388,7 +390,7 @@
       });
       return;
     }
-    ctx.drawImage(densityImage(w, h, grow, sp, box), 0, 0, w, h);
+    ctx.drawImage(densityImage(w, h, grow, sp, far, box), 0, 0, w, h);
     if (tab === "laniakea") {
       ctx.fillStyle = "rgba(5,6,13,0.45)"; ctx.fillRect(0, 0, w, h);
       const edge = far * grow;
