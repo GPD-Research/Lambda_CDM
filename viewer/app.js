@@ -498,7 +498,7 @@
     [15.4, "The first stars light up", [
       "The bright dots are the first stars, forming where matter was densest.",
       ["The faint blue web is a schematic of the cosmic web: matter drains out of the voids into filaments, where galaxies form.", true]]],
-    [HUDF ? HUDF_PLACED.minBorn : 15.95, "Galaxies light up", [
+    [gl && HUDF ? HUDF_PLACED.minBorn : 15.95, "Galaxies light up", [
       ["The galaxies are real Hubble Ultra Deep Field images. Each appears when the light Hubble saw left it, and looks redder the further back it is.", true],
       ["The faint blue web is a schematic of the cosmic web; galaxies form along its filaments.", true],
       ["The glowing smudges are galaxies, drawn as an illustration.", false]]],
