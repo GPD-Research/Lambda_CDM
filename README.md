@@ -66,3 +66,5 @@ Before deploying or testing any novel theoretical frameworks (such as BMI theory
    * **Expected Outcome:** The IDE must explicitly flag the $10^{120}$ vacuum energy discrepancy, proving the software can correctly identify orthodox theoretical frictions rather than masking them with software errors.
 
 Once these checks pass, the IDE is officially calibrated as a reliable instrument for comparative physics modeling.
+
+**Cache-busting:** every local script, stylesheet and image an HTML page loads carries `?v=<hash of the file>`, so visitors get changes at once instead of mixing new and cached files. After editing one, run `python tools/stamp_assets.py`; CI fails (`--check`) if a tag is stale.

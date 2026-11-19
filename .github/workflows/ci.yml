@@ -27,3 +27,6 @@ jobs:
 
       - name: Test (pytest)
         run: pytest -q
+
+      - name: Cache-busting tags are current
+        run: python tools/stamp_assets.py --check
