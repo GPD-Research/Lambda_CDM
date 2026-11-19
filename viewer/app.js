@@ -471,10 +471,62 @@
 
   const WEB_NOTE = " The faint blue cosmic web of filaments and voids is a schematic (a random spherical Voronoi pattern), not survey data.";
 
+  // "i" note: what the sphere shows now, in plain words. [start log10(t / s), headline, bullets];
+  // a bullet given as [text, true] needs WebGL2 (the real sky images).
+  const ltYr = (yr) => Math.log10(C.fromNow(yr));
+  const RING_NOTES = [
+    "Each ring is the event horizon of the galaxy at its centre: light sent from beyond it from now on can never reach that galaxy.",
+    "Two galaxies can still reach each other only if each sits inside the other's ring. Rings that merely overlap are not enough.",
+    "The galaxies stay put on the sphere while the rings shrink, because dark energy keeps stretching space. It is the same for every galaxy, not just ours.",
+  ];
+  const INFO = [
+    [LOG_MIN, "Space itself is inflating", ["The sphere is the whole universe. It grows by about 10²⁶ times in a tiny fraction of a second.", "The flicker is quantum jitter, later the seeds of galaxies."]],
+    [Math.log10(C.INF_END), "Energy turns into a hot soup of particles", []],
+    [-12, "Particles gain mass from the Higgs field", []],
+    [-5, "Matter particles condense: quarks lock into protons and neutrons", []],
+    [0, "Neutrinos break free and stream away", []],
+    [Math.log10(180), "The first atomic nuclei form", []],
+    [Math.log10(1200), "A glowing, opaque fog", ["Light keeps bouncing off free electrons, so the sphere glows evenly and nothing can be seen through it."]],
+    [12.9, "The universe becomes transparent", []],
+    [13.9, "The first light, mapped", [
+      "The pattern is the real sky map of the cosmic microwave background: the light released when the universe became transparent.",
+      "Colours are temperature differences of about 1 part in 25,000 (see the key). These ripples are the seeds gravity grows into galaxies.",
+      ["Switch between COBE, WMAP and Planck at the top right to see the same sky in finer and finer detail.", true],
+      "Drag the sphere to turn it."]],
+    [15.4, "The first stars and galaxies light up", [
+      "The faint blue web is a schematic of the cosmic web: matter drains out of the voids into filaments, where galaxies form.",
+      ["The galaxies are real Hubble Ultra Deep Field images. Each appears when the light Hubble saw left it, and looks redder the further back it is.", true]]],
+    [16.9, "Galaxies everywhere, strung along the cosmic web", [
+      ["Nearer today the galaxies' colours shift back toward blue as their redshift shrinks.", true],
+      "Open View → Local structure, Milky Way or Solar system for a closer look."]],
+    [LOG_NOW + 0.02, "Dark energy isolates every galaxy", RING_NOTES],
+    [ltYr(1.5e11), "Alone: other galaxies fade from view", ["A galaxy beyond the horizon doesn't vanish at once: its old light keeps arriving, redshifted and slowed until it fades out.", ...RING_NOTES.slice(0, 1)]],
+    [ltYr(1e14), "The last stars burn out", ["Each dimming glow is a galaxy whose stars have died."]],
+    [ltYr(1e20), "Black holes rule", ["The purple-rimmed dots are the black holes left at each galaxy's centre."]],
+    [ltYr(1e95), "Black holes evaporate", ["Each flash is a galaxy's central black hole finishing its slow Hawking evaporation."]],
+    [ltYr(1e100), "Empty space, expanding forever", []],
+  ];
+  const info = $("info"), infoBtn = $("info-btn");
+  let infoKey = "";
+  function updateInfo() {
+    if (info.hidden) return;
+    const [, title, bullets] = INFO.filter(([lt]) => lt <= logt + 1e-9).pop() || INFO[0];
+    const items = bullets.filter((b) => !Array.isArray(b) || (b[1] && gl)).map((b) => (Array.isArray(b) ? b[0] : b));
+    const key = title + items.join();
+    if (key === infoKey) return;
+    infoKey = key;
+    info.innerHTML = `<b></b>${items.length ? "<ul></ul>" : ""}`;
+    info.querySelector("b").textContent = title;
+    for (const t of items) info.querySelector("ul").appendChild(document.createElement("li")).textContent = t;
+  }
+  infoBtn.addEventListener("click", () => {
+    info.hidden = !info.hidden; infoBtn.setAttribute("aria-expanded", String(!info.hidden)); infoKey = ""; updateInfo();
+  });
+
   function setLogt(v, keepSelection = false) {
     logt = Math.min(LOG_MAX, Math.max(LOG_MIN, v));
     if (!keepSelection) selected = null;
-    updatePanel();
+    updatePanel(); updateInfo();
   }
   function jumpTo(e) { selected = e; setLogt(Math.log10(e.t), true); }
   function step(dir) {
