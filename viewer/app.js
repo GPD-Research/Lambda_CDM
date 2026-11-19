@@ -500,6 +500,7 @@
       if (logt >= LOG_MAX || logt === LOG_NOW) { playing = false; $("play").textContent = "Play"; }
     }
     drawSky(now); drawTimeline();
+    pickMap.parentElement.style.visibility = gl && cmbLevel(logt) > 0.05 ? "" : "hidden";
     requestAnimationFrame(loop);
   }
 
