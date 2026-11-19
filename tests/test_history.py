@@ -31,6 +31,16 @@ def test_acceleration_begins_near_z_0_63():
     assert 1.0 / history.A_ACCELERATION - 1.0 == pytest.approx(0.632, abs=0.01)
 
 
+def test_dark_matter_split_and_deceleration():
+    today = history.density_fractions(1.0)
+    assert today["dark_matter"] / today["ordinary_matter"] == pytest.approx(5.39, abs=0.02)
+    assert today["dark_matter"] + today["ordinary_matter"] == pytest.approx(today["matter"])
+    assert history.deceleration(1e-9) == pytest.approx(1.0, abs=1e-3)
+    assert history.deceleration(history.A_ACCELERATION) == pytest.approx(0.0, abs=1e-3)
+    assert history.deceleration(1.0) == pytest.approx(-0.53, abs=0.01)
+    assert history.deceleration(1e3) == pytest.approx(-1.0, abs=1e-6)
+
+
 def test_scale_factor_inverts_cosmic_time():
     for a in [1e-20, 1e-12, 1e-6, 1e-3, 0.1, 0.5, 1.0]:
         assert history.scale_factor(history.cosmic_time(a)) == pytest.approx(a, rel=1e-8)
@@ -94,6 +104,7 @@ def test_js_matches_python():
         age: C.AGE,
         times: {json.dumps(a_values)}.map(C.cosmicTime),
         scale: {json.dumps(t_values)}.map(C.scaleFactor),
+        decel: {json.dumps(a_values)}.map(C.deceleration),
         lnScale: {json.dumps(far)}.map(C.lnScaleFactor),
         eras: {json.dumps(t_values)}.map((t) => C.era(t).id),
         starts: C.ERAS.map((e) => [e.id, e.start]),
@@ -106,6 +117,7 @@ def test_js_matches_python():
     assert out["age"] == pytest.approx(history.AGE_S, rel=1e-6)
     assert out["times"] == pytest.approx([history.cosmic_time(a) for a in a_values], rel=1e-5)
     assert out["scale"] == pytest.approx([history.scale_factor(t) for t in t_values], rel=1e-5)
+    assert out["decel"] == pytest.approx([history.deceleration(a) for a in a_values], rel=1e-6)
     assert out["lnScale"] == pytest.approx([history.ln_scale_factor(t) for t in far], rel=1e-6)
     assert out["eras"] == [history.era(t) for t in t_values]
     assert [e for e, _ in out["starts"]] == [e for e, _ in history.ERA_STARTS]
