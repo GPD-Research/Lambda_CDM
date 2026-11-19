@@ -1,6 +1,9 @@
 // Flat Lambda-CDM timeline in seconds after the Big Bang, with the Planck 2018 values of
 // Lambda_CDM/src/core.py. Below A_LOW the universe is radiation dominated:
 // t = a^2 / (2 H0 sqrt(Omega_r)). Inflation is drawn as 60 e-folds ending at 1e-32 s.
+// After today radiation is negligible and the exact matter + Lambda solution is used:
+// a^(3/2) = sqrt(Om/Ol) sinh(3/2 H_L tau), H_L = H0 sqrt(Ol). Far-future a overflows a double,
+// so lnScaleFactor is the primary function there.
 // Mirrored in Lambda_CDM/src/history.py; tests/test_history.py compares the two.
 (function (root) {
   const MPC_KM = 3.085677581e19, YEAR = 3.15576e7, T_CMB0 = 2.7255;
@@ -25,11 +28,16 @@
   }
   const AGE = acc;
 
+  const hL = h0 * Math.sqrt(Ol), RATIO = Math.sqrt(Ol / Om);
+  const tML = (a) => (2 / (3 * hL)) * Math.asinh(RATIO * a ** 1.5);
+  const TML1 = tML(1);
+
   const A_INF_END = Math.sqrt(2 * h0 * Math.sqrt(Or) * INF_END);
 
   function cosmicTime(a) {
     if (a < A_INF_END) return Math.max(0, INF_END - (Math.log(A_INF_END / a) / EFOLDS) * (INF_END - INF_START));
     if (a <= A_LOW) return tRad(a);
+    if (a > 1) return AGE + tML(a) - TML1;
     const x = Math.min(N - 1e-9, (Math.log(a) - LN_LO) / DL), i = Math.floor(x);
     return Math.exp(LN_T[i] + (x - i) * (LN_T[i + 1] - LN_T[i]));
   }
@@ -38,10 +46,17 @@
   const A_ACC = Math.cbrt(Om / (2 * Ol));
   const A_LAMBDA_EQ = Math.cbrt(Om / Ol);
 
+  function lnScaleFactor(t) {
+    if (t <= AGE) return Math.log(scaleFactor(t));
+    const x = 1.5 * hL * (t - AGE + TML1);
+    return (2 / 3) * (x + Math.log((1 - Math.exp(-2 * x)) / 2) - Math.log(RATIO));
+  }
+
   function scaleFactor(t) {
     if (t < INF_END) return A_INF_END * Math.exp((-EFOLDS * (INF_END - t)) / (INF_END - INF_START));
     if (t <= tRad(A_LOW)) return Math.sqrt(2 * h0 * Math.sqrt(Or) * t);
-    if (t >= AGE) return 1;
+    if (t > AGE) return Math.exp(lnScaleFactor(t));
+    if (t === AGE) return 1;
     const lt = Math.log(t);
     let lo = 0, hi = N;
     while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (LN_T[mid] <= lt) lo = mid; else hi = mid; }
@@ -50,6 +65,10 @@
   }
 
   const temperature = (a) => T_CMB0 / a;
+  // Hawking-like temperature of the de Sitter horizon, hbar H_L / (2 pi k_B): the floor the
+  // universe cools toward once the CMB has redshifted away.
+  const T_DE_SITTER = (1.054571817e-34 * hL) / (2 * Math.PI * 1.380649e-23);
+  const fromNow = (yr) => AGE + yr * YEAR;
 
   function densityFractions(a) {
     const r = Or / a ** 4, m = Om / a ** 3, total = r + m + Ol;
@@ -81,11 +100,20 @@
       "Galaxies build up along a web of dark-matter filaments. Star formation peaks around 3 billion years."],
     ["dark_energy", cosmicTime(A_LAMBDA_EQ), "Dark energy takes over",
       "Matter has thinned out enough that dark energy dominates, and the expansion is speeding up."],
+    ["alone", fromNow(1.5e11), "Alone: other galaxies pass out of view",
+      "Expansion has carried every galaxy beyond the merged Milky Way and Andromeda past our horizon. Space doubles in size every 12 billion years."],
+    ["last_stars", fromNow(1e14), "The last stars burn out",
+      "The gas is used up and the last red dwarfs fade. White dwarfs, neutron stars and black holes are all that remain."],
+    ["black_holes", fromNow(1e20), "Black holes rule",
+      "Close encounters have flung most dead stars out of the galaxy, and the rest have fallen into its central black hole."],
+    ["empty", fromNow(1e100), "Empty space, expanding forever",
+      "The last black holes have evaporated into faint Hawking radiation. Nearly empty de Sitter space keeps expanding, at about 2 × 10⁻³⁰ K."],
   ].map(([id, start, label, detail]) => ({ id, start, label, detail }));
 
   function era(t) {
     let cur = ERAS[0];
-    for (const e of ERAS) if (t >= e.start) cur = e;
+    // Tolerance so an event placed on an era boundary survives the round trip through log10(t).
+    for (const e of ERAS) if (t >= e.start * (1 - 1e-12)) cur = e;
     return cur;
   }
 
@@ -132,11 +160,32 @@
     { id: "today", t: AGE, name: "Today", status: "partial",
       predicted: `Age ${(AGE / YEAR / 1e9).toFixed(2)} billion years and H₀ = 67.4 km/s/Mpc, fixed by early-universe data.`,
       evidence: "The oldest stars (~12–13 billion years) fit inside this age. Local Cepheid and supernova distances give H₀ ≈ 73 km/s/Mpc, a >4σ disagreement (the Hubble tension)." },
+    { id: "andromeda", t: fromNow(4.5e9), name: "Milky Way and Andromeda collide", status: "future",
+      predicted: "Andromeda, 2.5 million light-years away and closing at 110 km/s, falls into the Milky Way; the pair merge into one elliptical galaxy. This is local gravity, not cosmology: the Local Group is bound and does not expand.",
+      evidence: "Hubble and Gaia proper motions put the first close pass about 4–5 billion years ahead. A 2025 study (Sawala et al.) gives roughly even odds of a full merger within 10 billion years." },
+    { id: "horizon", t: fromNow(1.5e11), name: "Other galaxies leave our view", status: "future",
+      predicted: "With constant dark energy, every galaxy outside the Local Group is carried beyond our cosmic event horizon; its light fades and redshifts until it cannot be seen (Loeb 2002; Krauss and Scherrer 2007).",
+      evidence: "Follows from the measured Ω_Λ ≈ 0.69 and w ≈ −1. If dark energy evolves, as DESI (2024–25) hints, the timing and even the outcome could change." },
+    { id: "cmbfade", t: fromNow(1e12), name: "The CMB fades out", status: "future",
+      predicted: "Space has grown about 10²⁴ times since today. The CMB has cooled to ~10⁻²⁴ K, with waves longer than a galaxy, so observers then could not detect it.",
+      evidence: "A direct consequence of T = T₀/a and the measured expansion. Observers inside the merged galaxy would see no evidence of the Big Bang." },
+    { id: "laststars", t: fromNow(1e14), name: "The last stars die", status: "future",
+      predicted: "Star formation ends as gas runs out; the longest-lived red dwarfs burn out after about 10¹⁴ years (Adams and Laughlin 1997).",
+      evidence: "Based on observed star-formation decline and stellar-evolution models; red dwarfs are the commonest stars today." },
+    { id: "evaporate", t: fromNow(1e19), name: "The galaxy evaporates", status: "future",
+      predicted: "Over ~10¹⁹ years, chance close passes kick most stellar remnants out of the galaxy; the rest spiral into the central black hole.",
+      evidence: "Standard stellar-dynamics estimate. It assumes protons are stable; if protons decay (not yet seen, lifetime > 10³⁴ years), the remnants dissolve too." },
+    { id: "stellarbh", t: fromNow(1e67), name: "Stellar black holes evaporate", status: "future",
+      predicted: "A black hole of one solar mass loses its mass to Hawking radiation in about 10⁶⁷ years, once the CMB is colder than it is.",
+      evidence: "Hawking radiation has never been seen from a real black hole; analogue versions have been made in the lab (Steinhauer, 2016–19)." },
+    { id: "lastbh", t: fromNow(1e100), name: "The last black holes evaporate", status: "future",
+      predicted: "The biggest supermassive black holes, ~10¹¹ solar masses, take up to ~10¹⁰⁰ years. Afterwards the universe is almost empty space at the de Sitter temperature, about 2 × 10⁻³⁰ K.",
+      evidence: "Untestable; the final de Sitter state follows from a true cosmological constant." },
   ];
 
   const api = {
-    YEAR, T_CMB0, AGE, A_LOW, A_ACC, A_LAMBDA_EQ, A_INF_END, INF_START, INF_END, Om, Or, Ol,
-    hubble, cosmicTime, timeOfRedshift, scaleFactor, temperature, densityFractions, era, ERAS, EVENTS,
+    YEAR, T_CMB0, T_DE_SITTER, AGE, A_LOW, A_ACC, A_LAMBDA_EQ, A_INF_END, INF_START, INF_END, Om, Or, Ol,
+    hubble, cosmicTime, timeOfRedshift, scaleFactor, lnScaleFactor, fromNow, temperature, densityFractions, era, ERAS, EVENTS,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Cosmos = api;

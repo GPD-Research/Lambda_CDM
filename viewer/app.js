@@ -1,11 +1,12 @@
 (() => {
   const root = window, C = Cosmos, $ = (id) => document.getElementById(id);
-  const LOG_MIN = -36, LOG_MAX = Math.log10(C.AGE);
+  const LOG_MIN = -36, LOG_NOW = Math.log10(C.AGE), LOG_MAX = Math.log10(C.fromNow(1e110));
   const STATUS = {
     verified: ["Verified", "#4ade80"],
     lab: ["Recreated in the lab", "#38bdf8"],
     partial: ["Partly verified", "#fbbf24"],
     untested: ["Not yet verified", "#94a3b8"],
+    future: ["Future prediction", "#c084fc"],
   };
   const OBSERVABLE_RADIUS_M = 4.4e26, LY_M = 9.4607e15;
   let logt = LOG_MIN, playing = false, selected = null, lastT = performance.now();
@@ -64,11 +65,17 @@
   const ramp = (x, a, b) => { const f = Math.min(1, Math.max(0, (x - a) / (b - a))); return f * f * (3 - 2 * f); };
   const BASE = [[-36, [255, 255, 255]], [-32, [225, 236, 255]], [-12, [255, 248, 222]], [-5, [255, 226, 150]],
     [2.5, [255, 178, 92]], [12.9, [255, 140, 62]], [13.1, [120, 40, 32]], [14, [45, 14, 22]], [15.3, [12, 10, 22]], [18, [10, 10, 24]]];
+  BASE.push([21.6, [7, 7, 16]], [27, [4, 4, 10]]);
   const SPECKLE = [[-36, 0.15], [-32, 0.75], [-5, 0.75], [2.5, 0.35], [12.85, 0.15], [12.98, 0]];
   const GLOW = [[-36, 1], [-12, 0.9], [2.5, 0.55], [12.9, 0.4], [13.1, 0.05], [18, 0]];
 
   // Sphere radius on a compressed log scale of a, so every era stays visible.
-  const SIZE = [[-52, 0.006], [-25.7, 0.16], [-10, 0.36], [-3, 0.6], [-1, 0.8], [0, 1]];
+  const SIZE = [[-52, 0.006], [-25.7, 0.16], [-10, 0.36], [-3, 0.6], [-1, 0.8], [0, 1], [3, 1.06], [30, 1.12]];
+  // How strongly the CMB map shows: it appears at release, dims in the dark ages and fades out
+  // entirely by ~10¹² years from now, when it has redshifted beyond detection.
+  const cmbLevel = (lt) => ramp(lt, 12.9, 13.05) * (1 - 0.97 * ramp(lt, 13.5, 15.6)) * (1 - ramp(lt, 18.5, 19.5));
+  // Beyond the merged Local Group, galaxies fade out of view 30–300 billion years from now.
+  const galFade = (lt) => 1 - ramp(lt, 18.1, 19.0);
 
   // ---------- formatting ----------
   const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
@@ -87,7 +94,8 @@
     if (yr < 1) return `${num(t / 86400)} days`;
     if (yr < 1e6) return `${Number(yr.toPrecision(3)).toLocaleString()} years`;
     if (yr < 1e9) return `${num(yr / 1e6)} million years`;
-    return `${(yr / 1e9).toFixed(2)} billion years`;
+    if (yr < 1e12) return `${(yr / 1e9).toFixed(2)} billion years`;
+    return `${sci(yr)} years`;
   }
   function fmtEnergy(ev) {
     const u = [[1e12, "TeV"], [1e9, "GeV"], [1e6, "MeV"], [1e3, "keV"], [1, "eV"], [1e-3, "meV"]];
@@ -133,10 +141,10 @@
   function drawSky(now) {
     const [W, H] = skyDims, ctx = sky.getContext("2d");
     ctx.clearRect(0, 0, W, H);
-    const t = 10 ** logt, a = C.scaleFactor(t), la = Math.log10(a);
+    const t = 10 ** logt, la = C.lnScaleFactor(t) / Math.LN10, a = 10 ** la, fade = galFade(logt);
     const cx = W / 2, cy = H / 2 + 14, R = Math.max(1.5, track(SIZE, la) * Math.min(W, H) * 0.42);
     const base = track(BASE, logt), glow = track(GLOW, logt), speckle = track(SPECKLE, logt);
-    const cmb = ramp(logt, 12.9, 13.05) * (1 - 0.97 * ramp(logt, 13.5, 15.6));
+    const cmb = cmbLevel(logt);
     const lambda = logt > 10 ? C.densityFractions(a).dark_energy : 0;
 
     if (glow > 0) {
@@ -177,7 +185,7 @@
       }
     }
     for (const s of STARS) {
-      const on = ramp(logt, s.born, s.born + 0.15) * (1 - 0.6 * ramp(logt, 16.4, 17));
+      const on = ramp(logt, s.born, s.born + 0.15) * (1 - 0.6 * ramp(logt, 16.4, 17)) * fade;
       if (on <= 0) continue;
       const [x, y, z] = project(s.p);
       if (z <= 0) continue;
@@ -188,7 +196,7 @@
     }
     ctx.shadowBlur = 0;
     for (const g of gl ? [] : GALAXIES) {
-      const on = ramp(logt, g.born, g.born + 0.25);
+      const on = ramp(logt, g.born, g.born + 0.25) * fade;
       if (on <= 0) continue;
       const [x, y, z] = project(g.p);
       if (z <= 0) continue;
@@ -200,6 +208,7 @@
       ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.283); ctx.fill();
       ctx.restore();
     }
+    drawFuture(ctx, cx, cy, R);
     if (!gl) {
       const limb = ctx.createRadialGradient(cx, cy, R * 0.55, cx, cy, R);
       limb.addColorStop(0, "rgba(0,0,0,0)"); limb.addColorStop(1, "rgba(0,0,0,0.55)");
@@ -212,7 +221,7 @@
         W: Math.round(W * d), H: Math.round(H * d), cx: cx * d, cy: cy * d, R: R * d,
         M: [cr, 0, sr, st * sr, ct, -st * cr, -ct * sr, st, ct * cr],
         map: cmbMap, cmb: cmb * 0.92, warm: 1 - ramp(logt, 13.1, 13.9), contrast: ramp(logt, 12.95, 13.2),
-        logt, zNow: 1 / a - 1,
+        logt, zNow: 1 / a - 1, fade,
       });
     }
     const tctx = skyTop.getContext("2d");
@@ -220,13 +229,54 @@
     if (window.EraInset && $("show-inset").checked) EraInset.draw(tctx, { W, H, cx, cy, R, era: C.era(t).id, logt, alpha: 1, now });
   }
 
+  // The merged Milky Way and Andromeda ("Milkomeda") stays in view after the other galaxies
+  // leave; its stars die, the galaxy evaporates, and its central black hole finally pops.
+  function drawFuture(ctx, cx, cy, R) {
+    const on = ramp(logt, 17.9, 18.6), stars = 1 - ramp(logt, 20.6, 21.6), left = 1 - ramp(logt, 26.2, 26.8);
+    const glow = on * (0.25 + 0.75 * stars) * left;
+    if (glow > 0.01) {
+      const r = Math.max(3, R * 0.07), col = [lerp(255, 150, 1 - stars), lerp(236, 50, 1 - stars), lerp(205, 40, 1 - stars)];
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(-0.5); ctx.scale(1, 0.62);
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+      g.addColorStop(0, rgb([255, 248, 230].map((c, i) => lerp(c, col[i], 1 - stars)), glow));
+      g.addColorStop(0.3, rgb(col, 0.6 * glow)); g.addColorStop(1, rgb(col, 0));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.283); ctx.fill();
+      ctx.restore();
+    }
+    const bh = ramp(logt, 21, 22) * (1 - ramp(logt, 105.5, 107.5)), flash = ramp(logt, 105.5, 107.5) * (1 - ramp(logt, 107.5, 109.5));
+    if (bh > 0.01) {
+      ctx.fillStyle = "#000"; ctx.strokeStyle = `rgba(190,150,255,${0.7 * bh})`; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(cx, cy, Math.max(2.5, R * 0.012), 0, 6.283); ctx.fill(); ctx.stroke(); ctx.lineWidth = 1;
+    }
+    if (flash > 0.01) {
+      const r = R * 0.08, g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      g.addColorStop(0, `rgba(255,255,255,${flash})`); g.addColorStop(1, "rgba(200,170,255,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.283); ctx.fill();
+    }
+  }
+
   // ---------- timeline ----------
+  // The past is log10(t) on the left 70%. The future is log10(1 + τ / 10⁸ yr), with τ the time
+  // after today, squeezed in stages so the far future fits the last 30%.
+  const TAU0 = 1e8 * C.YEAR;
+  const qOf = (lt) => (lt <= LOG_NOW ? lt : LOG_NOW + Math.log10(1 + (10 ** lt - C.AGE) / TAU0));
+  const ltOfQ = (q) => (q <= LOG_NOW ? q : Math.log10(C.AGE + (10 ** (q - LOG_NOW) - 1) * TAU0));
+  const qYr = (yr) => qOf(Math.log10(C.fromNow(yr)));
+  const KNOTS = [[LOG_MIN, 0], [LOG_NOW, 0.7], [qYr(1e19), 0.88], [qYr(1e100), 0.97], [qYr(1e110), 1]];
+  function pos(lt) {
+    const q = qOf(lt);
+    return track(KNOTS, q);
+  }
+  function unpos(p) {
+    return ltOfQ(track(KNOTS.map(([q, f]) => [f, q]), p));
+  }
   const PAD = 18;
-  const xOf = (lt, W) => PAD + ((lt - LOG_MIN) / (LOG_MAX - LOG_MIN)) * (W - 2 * PAD);
-  const ltOf = (x, W) => LOG_MIN + ((x - PAD) / (W - 2 * PAD)) * (LOG_MAX - LOG_MIN);
+  const xOf = (lt, W) => PAD + pos(lt) * (W - 2 * PAD);
+  const ltOf = (x, W) => unpos((x - PAD) / (W - 2 * PAD));
   const TICKS = [[-30, "10⁻³⁰ s"], [-20, "10⁻²⁰ s"], [-10, "10⁻¹⁰ s"], [0, "1 s"], [Math.log10(3600), "1 hr"],
-    [Math.log10(C.YEAR), "1 yr"], [Math.log10(1e3 * C.YEAR), "1 kyr"], [Math.log10(1e6 * C.YEAR), "1 Myr"], [Math.log10(1e9 * C.YEAR), "1 Gyr"]];
-  const ERA_COLORS = ["#3b2f6b", "#5b3d7a", "#6b3f5e", "#7a4a3c", "#7a5a32", "#6e6630", "#7a4f24", "#8a3d2a", "#1f2645", "#2b3d6e", "#2f4f6e", "#3d3570"];
+    [Math.log10(C.YEAR), "1 yr"], [Math.log10(1e3 * C.YEAR), "1 kyr"], [Math.log10(1e6 * C.YEAR), "1 Myr"], [Math.log10(1e9 * C.YEAR), "1 Gyr"],
+    ...[[1e12, "+1 Tyr"], [1e15, "+10¹⁵ yr"], [1e20, "+10²⁰ yr"], [1e60, "+10⁶⁰ yr"], [1e100, "+10¹⁰⁰ yr"]].map(([y, l]) => [Math.log10(C.fromNow(y)), l])];
+  const ERA_COLORS = ["#3b2f6b", "#5b3d7a", "#6b3f5e", "#7a4a3c", "#7a5a32", "#6e6630", "#7a4f24", "#8a3d2a", "#1f2645", "#2b3d6e", "#2f4f6e", "#3d3570", "#2d2850", "#3a2230", "#1c1530", "#101020"];
   const eventX = (e, W) => xOf(Math.log10(e.t), W);
   const BAND_Y = 30, BAND_H = 34, EV_Y = 92;
 
@@ -238,7 +288,7 @@
       ctx.fillStyle = ERA_COLORS[i]; ctx.fillRect(x0, BAND_Y, x1 - x0, BAND_H);
     });
     ctx.font = "11px system-ui, sans-serif"; ctx.textBaseline = "middle";
-    const SHORT = { inflation: "Inflation", radiation: "Radiation", quark_gluon_plasma: "Quark–gluon plasma", hadrons: "Hadrons", leptons: "ν", nuclei: "", opaque_plasma: "Opaque", transparent: "", dark_ages: "Dark ages", first_stars: "Stars", galaxies: "Galaxies", dark_energy: "" };
+    const SHORT = { inflation: "Inflation", radiation: "Radiation", quark_gluon_plasma: "Quark–gluon plasma", hadrons: "Hadrons", leptons: "ν", nuclei: "", opaque_plasma: "Opaque", transparent: "", dark_ages: "Dark ages", first_stars: "Stars", galaxies: "Galaxies", dark_energy: "", alone: "Alone", last_stars: "Dead stars", black_holes: "Black holes", empty: "" };
     C.ERAS.forEach((e, i) => {
       const x0 = xOf(Math.log10(e.start), W), x1 = i + 1 < C.ERAS.length ? xOf(Math.log10(C.ERAS[i + 1].start), W) : xOf(LOG_MAX, W);
       const label = SHORT[e.id];
@@ -250,6 +300,8 @@
       ctx.fillRect(x, BAND_Y - 6, 1, 6);
       ctx.fillText(lab, x - ctx.measureText(lab).width / 2, BAND_Y - 10);
     }
+    const xNow = xOf(LOG_NOW, W);
+    ctx.fillStyle = "rgba(255,255,255,0.55)"; ctx.fillRect(xNow - 0.5, BAND_Y - 4, 1, BAND_H + 8);
     ctx.strokeStyle = "#2a3563"; ctx.beginPath(); ctx.moveTo(PAD, EV_Y); ctx.lineTo(W - PAD, EV_Y); ctx.stroke();
     for (const e of C.EVENTS) {
       const x = eventX(e, W);
@@ -284,18 +336,20 @@
 
   // ---------- panel ----------
   function updatePanel() {
-    const t = 10 ** logt, a = C.scaleFactor(t), e = C.era(t), inflating = t < C.INF_END;
+    const t = 10 ** logt, la = C.lnScaleFactor(t) / Math.LN10, a = 10 ** la, e = C.era(t), inflating = t < C.INF_END;
     $("ov-era").textContent = e.label; $("ov-time").textContent = fmtTime(t);
     $("state-label").textContent = e.label; $("state-detail").textContent = e.detail;
     const src = sourceNote(logt);
     $("state-source").textContent = src ? src[1] : ""; $("ov-src").textContent = src ? src[0] : "";
     $("r-time").textContent = fmtTime(t);
-    const T = C.temperature(a);
-    $("r-temp").textContent = inflating ? "≈ 0 K (energy is in the inflaton)" : `${num(T)} K`;
-    $("r-kt").textContent = inflating ? "—" : fmtEnergy(8.617333e-5 * T);
+    const T = C.temperature(a), floor = T < C.T_DE_SITTER, big = la > 300;
+    $("r-temp").textContent = inflating ? "≈ 0 K (energy is in the inflaton)"
+      : floor ? `${sci(C.T_DE_SITTER)} K (de Sitter horizon; the CMB is colder)` : `${num(T)} K`;
+    $("r-kt").textContent = inflating ? "—" : fmtEnergy(8.617333e-5 * Math.max(T, C.T_DE_SITTER));
     $("r-z").textContent = num(1 / a - 1);
-    $("r-a").textContent = num(a);
-    $("r-size").textContent = fmtLength(OBSERVABLE_RADIUS_M * a);
+    $("r-a").textContent = big ? `10^(${num(la)})` : num(a);
+    const lsize = la + Math.log10(OBSERVABLE_RADIUS_M / LY_M);
+    $("r-size").textContent = lsize > 300 ? `10^(${num(lsize)}) light-years` : fmtLength(OBSERVABLE_RADIUS_M * a);
     const f = C.densityFractions(a);
     const rows = inflating ? [["Inflaton field", 1, "#c084fc"]]
       : [["Radiation", f.radiation, "#fbbf24"], ["Matter", f.matter, "#60a5fa"], ["Dark energy Λ", f.dark_energy, "#a78bfa"]];
@@ -312,11 +366,11 @@
     $("event-name").textContent = `${ev.name} (${fmtTime(ev.t)})`;
     $("event-badge").textContent = STATUS[ev.status][0]; $("event-badge").style.background = STATUS[ev.status][1];
     $("event-pred").textContent = ev.predicted; $("event-evid").textContent = ev.evidence;
-    $("t-slider").value = logt;
+    $("t-slider").value = pos(logt);
   }
 
   function sourceNote(lt) {
-    const cmb = ramp(lt, 12.9, 13.05) * (1 - 0.97 * ramp(lt, 13.5, 15.6));
+    const cmb = cmbLevel(lt);
     if (gl && cmb > 0.05) {
       const [name, credit] = MAPS[cmbMap], range = SKY[cmbMap].rangeMicroK;
       const parts = Math.round(C.T_CMB0 * 1e6 / range / 1000) * 1000;
@@ -324,7 +378,7 @@
     }
     let n = 0;
     while (n < HUDF_BORN.length && HUDF_BORN[n] <= lt) n++;
-    if (gl && n > 0) {
+    if (gl && n > 0 && galFade(lt) > 0.05) {
       return ["Galaxies: Hubble Ultra Deep Field",
         `Galaxies: Hubble Ultra Deep Field (ESA/Hubble heic0406a), NASA, ESA, S. Beckwith (STScI) and the HUDF Team, CC BY 4.0; redshifts from Rafelski et al. 2015. ${n} of ${HUDF_BORN.length} have appeared: each shows up when the light Hubble saw left it, in Hubble's colours, and looks bluer nearer the present as its redshift shrinks. Their places on the sphere are illustrative.`];
     }
@@ -342,8 +396,7 @@
     if (list.length) jumpTo(list[0]);
   }
 
-  $("t-slider").max = LOG_MAX.toFixed(2);
-  $("t-slider").addEventListener("input", (e) => setLogt(Number(e.target.value)));
+  $("t-slider").addEventListener("input", (e) => setLogt(unpos(Number(e.target.value))));
   $("play").onclick = () => {
     if (!playing && logt >= LOG_MAX - 1e-6) setLogt(LOG_MIN);
     playing = !playing; $("play").textContent = playing ? "Pause" : "Play";
@@ -356,8 +409,11 @@
   function loop(now) {
     const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
     if (playing) {
-      setLogt(logt + dt * Number($("speed").value));
-      if (logt >= LOG_MAX) { playing = false; $("play").textContent = "Play"; }
+      // Playback runs in decades of the timeline coordinate and pauses once at today.
+      const was = logt;
+      setLogt(ltOfQ(qOf(logt) + dt * Number($("speed").value)));
+      if (was < LOG_NOW && logt >= LOG_NOW) setLogt(LOG_NOW);
+      if (logt >= LOG_MAX || logt === LOG_NOW) { playing = false; $("play").textContent = "Play"; }
     }
     drawSky(now); drawTimeline();
     requestAnimationFrame(loop);
