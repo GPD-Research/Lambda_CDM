@@ -11,7 +11,9 @@ This module computes the background expansion history and thermodynamic evolutio
 * `src/qft.py` - Handles standard model particle masses, thermal freeze-out, and vacuum energy.
 * `src/metrics.py` - Statistical evaluation engine (Chi-squared, AIC, BIC).
 
-## History of the Universe viewer
+## Aeon Horizon: the ΛCDM model viewer
+
+Run it online at https://gpd-research.com/Lambda_CDM/viewer/.
 Open `viewer/index.html` in any browser; it needs no build or server.
 
 * **Inflating sphere:** today's observable universe grows with the scale factor a(t), solved from the Friedmann equation with the parameters in `src/core.py`. Its surface changes with each era: white-hot radiation, plasma, the mottled CMB, the dark ages, then stars and galaxies.
