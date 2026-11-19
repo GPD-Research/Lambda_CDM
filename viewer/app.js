@@ -500,7 +500,10 @@
       if (logt >= LOG_MAX || logt === LOG_NOW) { playing = false; $("play").textContent = "Play"; }
     }
     drawSky(now); drawTimeline();
-    pickMap.parentElement.style.visibility = gl && cmbLevel(logt) > 0.05 ? "" : "hidden";
+    const onSky = gl && cmbLevel(logt) > 0.05;
+    pickMap.parentElement.style.visibility = onSky ? "" : "hidden";
+    // The key matches the map colours, shown once the fresh orange glow (drawSky: warm, until 13.9) has fully given way to them.
+    $("cmb-key").style.visibility = onSky && logt >= 13.9 ? "" : "hidden";
     requestAnimationFrame(loop);
   }
 
@@ -508,11 +511,12 @@
   if (hash.has("t") && Number.isFinite(fromHash)) logt = Math.min(LOG_MAX, Math.max(LOG_MIN, fromHash));
   if (MAPS[`cmb_${hash.get("map")}`]) cmbMap = `cmb_${hash.get("map")}`;
   const pickMap = $("cmb-map");
+  const syncKey = () => { const r = SKY[cmbMap] ? SKY[cmbMap].rangeMicroK : 0; $("key-lo").textContent = `−${r} μK`; $("key-hi").textContent = `+${r} μK`; };
   if (gl) {
     pickMap.value = cmbMap.slice(4);
-    pickMap.addEventListener("change", () => { cmbMap = `cmb_${pickMap.value}`; gl.map(cmbMap); updatePanel(); });
-    gl.map(cmbMap);
-  } else pickMap.parentElement.style.display = "none";
+    pickMap.addEventListener("change", () => { cmbMap = `cmb_${pickMap.value}`; gl.map(cmbMap); syncKey(); updatePanel(); });
+    gl.map(cmbMap); syncKey();
+  } else pickMap.parentElement.style.display = $("cmb-key").style.display = "none";
   resize(); syncSpeed(); updatePanel();
   requestAnimationFrame(loop);
 })();
