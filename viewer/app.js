@@ -132,6 +132,9 @@
   }
   const resize = () => { fit(sky, skyDims); fit(skyTop, [0, 0]); fit(tl, tlDims); };
   window.addEventListener("resize", resize);
+  // The stage also changes size when the side panel's text reflows, with no window resize event;
+  // a canvas left at its old bitmap size is then stretched by CSS into an oval.
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(sky);
 
   const rgb = (c, a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
   function cmbColor(v) {
