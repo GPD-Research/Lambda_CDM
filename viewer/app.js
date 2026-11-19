@@ -350,7 +350,7 @@
     $("r-z").textContent = num(1 / a - 1);
     $("r-a").textContent = big ? `10^(${num(la)})` : num(a);
     const lsize = la + Math.log10(OBSERVABLE_RADIUS_M / LY_M);
-    $("r-size").textContent = lsize > 300 ? `10^(${num(lsize)}) light-years` : fmtLength(OBSERVABLE_RADIUS_M * a);
+    $("r-size").textContent = la + Math.log10(OBSERVABLE_RADIUS_M) > 300 ? `10^(${num(lsize)}) light-years` : fmtLength(OBSERVABLE_RADIUS_M * a);
     const f = C.densityFractions(a);
     const rows = inflating ? [["Inflaton field", 1, "#c084fc"]]
       : [["Radiation", f.radiation, "#fbbf24"], ["Dark matter", f.dark_matter, "#3b82f6"],
