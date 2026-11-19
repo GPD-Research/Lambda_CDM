@@ -48,7 +48,13 @@ def main(width: int = 2048, cells: int = 420, seed: int = 7) -> None:
     # the web looks stringy rather than like a honeycomb and some voids merge into larger ones.
     lobes = rng.normal(size=(200, 3))
     lobes /= np.linalg.norm(lobes, axis=1, keepdims=True)
-    amp = (np.exp(20 * (p @ lobes.T - 1)) @ rng.normal(size=200)).reshape(h, width)
+    weights = rng.normal(size=200)
+    amp = np.concatenate(
+        [
+            np.exp(20 * (p[i : i + 65536] @ lobes.T - 1)) @ weights
+            for i in range(0, p.shape[0], 65536)
+        ]
+    ).reshape(h, width)
     amp = np.clip(0.55 + amp / (2 * amp.std()), 0, 1)
     web = 0.9 * amp**2 * filaments(p, cells, rng, h, width, 0.006, 0.014) + 0.3 * amp * filaments(
         p, cells * 4, rng, h, width, 0.003, 0.0
