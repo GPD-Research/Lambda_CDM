@@ -491,6 +491,7 @@
     [13.9, "The first light, mapped", [
       "The pattern is the real sky map of the cosmic microwave background: the light released when the universe became transparent.",
       "Colours are temperature differences of about 1 part in 25,000 (see the key). These ripples are the seeds gravity grows into galaxies.",
+      "When this light was released the universe was about 3,000 K, as hot as a red-hot ember. Expansion has since stretched it about 1,100 times, so we receive it today at 2.7 K, just above absolute zero: the same pattern, scaled down. The key's ±μK are today's values; at release they were about 1,100 times larger, a few tenths of a kelvin.",
       ["Switch between COBE, WMAP and Planck at the top right to see the same sky in finer and finer detail.", true],
       "Drag the sphere to turn it."]],
     [15.4, "The first stars and galaxies light up", [
