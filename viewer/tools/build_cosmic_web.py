@@ -41,7 +41,9 @@ def main(width: int = 2048, cells: int = 420, seed: int = 7) -> None:
     lon = (np.arange(width) + 0.5) / width * 2 * np.pi
     lat = np.pi / 2 - (np.arange(h) + 0.5) / h * np.pi
     lon, lat = np.meshgrid(lon, lat)
-    p = np.stack([np.cos(lat) * np.cos(lon), np.cos(lat) * np.sin(lon), np.sin(lat)], -1).reshape(-1, 3)
+    p = np.stack([np.cos(lat) * np.cos(lon), np.cos(lat) * np.sin(lon), np.sin(lat)], -1).reshape(
+        -1, 3
+    )
     # Smooth random field on the sphere: modulates filament brightness along their length, so
     # the web looks stringy rather than like a honeycomb and some voids merge into larger ones.
     lobes = rng.normal(size=(200, 3))
