@@ -5,6 +5,14 @@ from pathlib import Path
 import pytest
 
 VIEWER = Path(__file__).resolve().parents[1] / "viewer"
+
+
+def loads_script(src: str) -> bool:
+    """index.html loads src, with or without its ?v= cache-busting tag."""
+    page = (VIEWER / "index.html").read_text()
+    return re.search(rf'<script src="{re.escape(src)}(\?v=[0-9a-f]+)?"></script>', page) is not None
+
+
 ASSETS = ["cmb_cobe", "cmb_wmap", "cmb_planck", "hudf_galaxies"]
 
 
@@ -22,7 +30,7 @@ def load(key):
 @pytest.mark.parametrize("key", ASSETS)
 def test_asset_is_embedded_jpeg_loaded_by_page(key):
     assert load(key)["src"].startswith("data:image/jpeg;base64,")
-    assert f'<script src="assets/{key}.js"></script>' in (VIEWER / "index.html").read_text()
+    assert loads_script(f"assets/{key}.js")
 
 
 @pytest.mark.parametrize("key", ASSETS[:3])
@@ -41,7 +49,7 @@ def test_hudf_galaxies_fit_atlas_with_redshifts():
 
 def test_cmb_spectrum_has_lcdm_peaks_and_planck_points():
     data = load("cmb_spectrum")
-    assert '<script src="assets/cmb_spectrum.js"></script>' in (VIEWER / "index.html").read_text()
+    assert loads_script("assets/cmb_spectrum.js")
     theory = data["theory"]
     peaks = [
         (l, d)
@@ -66,4 +74,4 @@ def test_cosmic_web_is_schematic_texture_loaded_by_page():
         int.from_bytes(jpeg[sof + 7 : sof + 9], "big"),
     )
     assert width == 2 * height >= 1024
-    assert '<script src="assets/cosmic_web.js"></script>' in (VIEWER / "index.html").read_text()
+    assert loads_script("assets/cosmic_web.js")
