@@ -37,3 +37,17 @@ def test_hudf_galaxies_fit_atlas_with_redshifts():
     for x, y, size, z, side in data["galaxies"]:
         assert 0 <= x and x + size <= data["width"] and 0 <= y and y + size <= data["height"]
         assert 0 < z < 9 and size <= side
+
+
+def test_cmb_spectrum_has_lcdm_peaks_and_planck_points():
+    data = load("cmb_spectrum")
+    assert '<script src="assets/cmb_spectrum.js"></script>' in (VIEWER / "index.html").read_text()
+    theory = data["theory"]
+    peaks = [
+        (l, d)
+        for (l, d), (_, before), (_, after) in zip(theory[1:], theory, theory[2:])
+        if d > before and d > after and l > 100
+    ]
+    assert [round(l, -1) for l, _ in peaks[:3]] == [220, 540, 820]
+    assert 5500 < peaks[0][1] < 6000
+    assert len(data["points"]) > 100 and all(lo > 0 and hi > 0 for _, _, lo, hi in data["points"])

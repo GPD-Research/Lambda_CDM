@@ -116,7 +116,7 @@
   function draw(ctx, o) {
     const d = D[o.logt >= -13 && o.logt < -10 ? "electroweak" : o.era];
     if (!d || o.alpha <= 0.01 || o.W < 560) return;
-    const s = Math.max(1, Math.min(o.W, o.H) / 700), bw = Math.min(360 * s, o.W * 0.3), bh = bw * 0.95;
+    const s = Math.max(1, Math.min(o.W, o.H) / 700), bw = Math.min(360 * s, o.W * 0.3), bh = Math.max(bw * 0.95, 340 * s);
     const bx = o.W - bw - 18 * s, by = Math.max(56 * s, o.cy - bh / 2 - 40 * s);
     const ax = o.cx + Math.max(o.R, 2) * 0.42, ay = o.cy - Math.max(o.R, 2) * 0.32;
     ctx.save(); ctx.globalAlpha = o.alpha;

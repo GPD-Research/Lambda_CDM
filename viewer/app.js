@@ -227,6 +227,7 @@
     const tctx = skyTop.getContext("2d");
     tctx.clearRect(0, 0, W, H);
     if (window.EraInset && $("show-inset").checked) EraInset.draw(tctx, { W, H, cx, cy, R, era: C.era(t).id, logt, alpha: 1, now });
+    if (window.PeaksChart && $("show-inset").checked) PeaksChart.draw(tctx, { W, H, alpha: ramp(logt, 12.95, 13.05) * (1 - ramp(logt, 15.2, 15.6)) });
   }
 
   // The merged Milky Way and Andromeda ("Milkomeda") stays in view after the other galaxies
