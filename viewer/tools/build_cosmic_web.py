@@ -20,28 +20,37 @@ from PIL import Image, ImageFilter
 OUT = Path(__file__).resolve().parents[1] / "assets" / "cosmic_web.js"
 
 
-def main(width: int = 2048, cells: int = 1400, seed: int = 7) -> None:
-    rng = np.random.default_rng(seed)
+def filaments(p, cells, rng, h, width, sigma, knot):
+    """Edges (and, if knot > 0, vertices) of a random spherical Voronoi tessellation."""
     seeds = rng.normal(size=(cells, 3))
     seeds /= np.linalg.norm(seeds, axis=1, keepdims=True)
+    d = np.empty((p.shape[0], 3))
+    for i in range(0, p.shape[0], 65536):
+        top = np.partition(-(p[i : i + 65536] @ seeds.T), 2, axis=1)[:, :3]
+        d[i : i + 65536] = np.sort(np.arccos(np.clip(-top, -1, 1)), axis=1)
+    edge = np.exp(-(((d[:, 1] - d[:, 0]) / sigma) ** 2))
+    if knot:
+        # Clusters sit where three voids meet.
+        edge = edge * (1 + 1.5 * np.exp(-(((d[:, 2] - d[:, 0]) / knot) ** 2)))
+    return edge.reshape(h, width)
+
+
+def main(width: int = 2048, cells: int = 420, seed: int = 7) -> None:
+    rng = np.random.default_rng(seed)
     h = width // 2
     lon = (np.arange(width) + 0.5) / width * 2 * np.pi
     lat = np.pi / 2 - (np.arange(h) + 0.5) / h * np.pi
     lon, lat = np.meshgrid(lon, lat)
     p = np.stack([np.cos(lat) * np.cos(lon), np.cos(lat) * np.sin(lon), np.sin(lat)], -1).reshape(-1, 3)
-    d = np.empty((p.shape[0], 2))
-    for i in range(0, p.shape[0], 65536):
-        dots = p[i : i + 65536] @ seeds.T
-        top = np.partition(-dots, 1, axis=1)[:, :2]
-        d[i : i + 65536] = np.sort(np.arccos(np.clip(-top, -1, 1)), axis=1)
-    gap = (d[:, 1] - d[:, 0]).reshape(h, width)
-    # Filament strength varies smoothly over the sky, so some walls are bright and most faint.
-    lobes = rng.normal(size=(40, 3))
+    # Smooth random field on the sphere: modulates filament brightness along their length, so
+    # the web looks stringy rather than like a honeycomb and some voids merge into larger ones.
+    lobes = rng.normal(size=(200, 3))
     lobes /= np.linalg.norm(lobes, axis=1, keepdims=True)
-    amp = (np.exp(6 * (p @ lobes.T - 1)) @ rng.random(40)).reshape(h, width)
-    amp = 0.25 + 0.75 * amp / amp.max()
-    web = amp * np.exp(-((gap / (0.006 + 0.01 * amp)) ** 2))
-    # Clusters where three or more cells meet: the third-nearest seed is almost as close.
+    amp = (np.exp(20 * (p @ lobes.T - 1)) @ rng.normal(size=200)).reshape(h, width)
+    amp = np.clip(0.55 + amp / (2 * amp.std()), 0, 1)
+    web = 0.9 * amp**2 * filaments(p, cells, rng, h, width, 0.006, 0.014) + 0.3 * amp * filaments(
+        p, cells * 4, rng, h, width, 0.003, 0.0
+    )
     img = np.clip(255 * web, 0, 255).astype(np.uint8)
     im = Image.fromarray(img, "L").filter(ImageFilter.GaussianBlur(1.2))
     buf = io.BytesIO()

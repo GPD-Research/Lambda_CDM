@@ -51,3 +51,17 @@ def test_cmb_spectrum_has_lcdm_peaks_and_planck_points():
     assert [round(l, -1) for l, _ in peaks[:3]] == [220, 540, 820]
     assert 5500 < peaks[0][1] < 6000
     assert len(data["points"]) > 100 and all(lo > 0 and hi > 0 for _, _, lo, hi in data["points"])
+
+
+def test_cosmic_web_is_schematic_texture_loaded_by_page():
+    import base64
+    import io
+
+    from PIL import Image
+
+    web = load("cosmic_web")
+    assert web["src"].startswith("data:image/jpeg;base64,")
+    assert "schematic" in web["note"].lower() and "not survey data" in web["note"].lower()
+    image = Image.open(io.BytesIO(base64.b64decode(web["src"].split(",", 1)[1])))
+    assert image.size[0] == 2 * image.size[1] >= 1024
+    assert '<script src="assets/cosmic_web.js"></script>' in (VIEWER / "index.html").read_text()
