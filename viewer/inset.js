@@ -42,7 +42,7 @@
       title: "Annihilation: matter outlasts antimatter",
       eq: "q + q̄ → γ + γ",
       note: "Quarks and antiquarks wipe each other out into light. About 1 in a billion quarks has no partner and survives to make all the matter there is. Why is unexplained.",
-      edges: [["f", [0.05, 0.15], [0.5, 0.3], "q"], ["v", [0.5, 0.3], [0.95, 0.15], "γ"], ["f", [0.5, 0.7], [0.5, 0.3], ""],
+      edges: [["f", [0.05, 0.15], [0.5, 0.3], "q"], ["v", [0.5, 0.3], [0.95, 0.15], "γ"], ["f", [0.5, 0.3], [0.5, 0.7], ""],
         ["f", [0.5, 0.7], [0.05, 0.85], "q̄"], ["v", [0.5, 0.7], [0.95, 0.85], "γ"]],
     },
     leptons: {
