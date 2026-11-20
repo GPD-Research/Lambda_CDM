@@ -149,7 +149,7 @@
     skyTop.style.cursor = view.drag ? "grabbing" : onSphere(ev) ? "grab" : "";
     if (!view.drag) return;
     const k = 1 / Math.max(view.R, 60);
-    view.yaw = view.drag.yaw - (ev.clientX - view.drag.x) * k;
+    view.yaw = view.drag.yaw + (ev.clientX - view.drag.x) * k;
     view.pitch = Math.max(-1.45, Math.min(1.45, view.drag.pitch - (ev.clientY - view.drag.y) * k));
   });
   const endDrag = () => (view.drag = null);
