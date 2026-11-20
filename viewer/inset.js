@@ -38,6 +38,13 @@
       edges: [["f", [0.05, 0.22], [0.95, 0.22], "u"], ["f", [0.05, 0.5], [0.95, 0.5], "u"], ["f", [0.05, 0.78], [0.95, 0.78], "d"],
         ["g", [0.35, 0.22], [0.35, 0.5], ""], ["g", [0.65, 0.5], [0.65, 0.78], ""], ["g", [0.82, 0.22], [0.82, 0.5], ""]],
     },
+    annihilation: {
+      title: "Annihilation: matter outlasts antimatter",
+      eq: "q + q̄ → γ + γ",
+      note: "Quarks and antiquarks wipe each other out into light. About 1 in a billion quarks has no partner and survives to make all the matter there is. Why is unexplained.",
+      edges: [["f", [0.05, 0.15], [0.5, 0.3], "q"], ["v", [0.5, 0.3], [0.95, 0.15], "γ"], ["f", [0.5, 0.3], [0.5, 0.7], ""],
+        ["f", [0.5, 0.7], [0.05, 0.85], "q̄"], ["v", [0.5, 0.7], [0.95, 0.85], "γ"]],
+    },
     leptons: {
       title: "Neutrinos decouple",
       eq: "ν e → ν e  via Z;  rate ∝ T⁵ drops below H at ~1 MeV",
@@ -114,7 +121,7 @@
 
   // o: { W, H, cx, cy, R, era, logt, alpha, now }
   function draw(ctx, o) {
-    const d = D[o.logt >= -13 && o.logt < -10 ? "electroweak" : o.era];
+    const d = D[o.logt >= -13 && o.logt < -10 ? "electroweak" : o.logt >= -4.3 && o.logt < 0 ? "annihilation" : o.era];
     if (!d || o.alpha <= 0.01 || o.W < 560) return;
     const s = Math.max(1, Math.min(o.W, o.H) / 700), bw = Math.min(360 * s, o.W * 0.3), bh = Math.max(bw * 0.95, 340 * s);
     const bx = o.W - bw - 18 * s, by = Math.max(56 * s, o.cy - bh / 2 - 40 * s);
