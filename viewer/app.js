@@ -484,6 +484,7 @@
     [Math.log10(C.INF_END), "Energy turns into a hot soup of particles", []],
     [-12, "Particles gain mass from the Higgs field", []],
     [-5, "Matter particles condense: quarks lock into protons and neutrons", []],
+    [-4.3, "Matter and antimatter annihilate; a tiny leftover of matter survives", []],
     [0, "Neutrinos break free and stream away", []],
     [Math.log10(180), "The first atomic nuclei form", []],
     [Math.log10(1200), "A glowing, opaque fog", ["Light keeps bouncing off free electrons, so the sphere glows evenly and nothing can be seen through it."]],
