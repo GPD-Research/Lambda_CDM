@@ -459,7 +459,7 @@
     ctx.strokeStyle = "#7aa2ff"; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(px(cx), T); ctx.lineTo(px(cx), H - B); ctx.stroke();
     BUDGET.forEach(([, , , col], j) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(px(cx), py(now[j]), 3, 0, 6.283); ctx.fill(); });
-    const val = (v) => (budgetMode === "share" && v > -3 ? `${(100 * 10 ** v).toFixed(1)}%` : `${pow10(v)}`);
+    const val = (v) => (budgetMode === "share" && v > -3 ? `${(100 * 10 ** v).toFixed(1)}%` : num(10 ** v));
     const edge = logt < BX0 ? " Inflation, before 10⁻³² s, is off the left edge." : logt > BX1 ? " The far future is off the right edge." : "";
     $("budget-cap").innerHTML = BUDGET.map(([n, , , col], j) => `<span><i style="background:${col}"></i>${n} ${val(now[j])}</span>`).join(" ")
       + `<br>${BUDGET_CAP[budgetMode]} White dashes: today.${edge}`;
