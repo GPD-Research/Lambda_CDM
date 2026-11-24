@@ -413,6 +413,65 @@
   $("keys").innerHTML = Object.values(STATUS).map(([n, c]) => `<span><i style="background:${c}"></i>${n}</span>`).join("")
     + "<span>Click a dot for its prediction and evidence, or anywhere on the bar to jump in time.</span>";
 
+  // ---------- energy budget as curves: log10 of each share, or of each density, against log10 t ----------
+  // Densities are relative to today's critical density: Omega_i a^-n with n = 4, 3, 3, 0.
+  const BUDGET = [["Radiation", "radiation", 4, "#fbbf24"], ["Dark matter", "dark_matter", 3, "#3b82f6"],
+    ["Ordinary matter", "ordinary_matter", 3, "#34d399"], ["Dark energy Λ", "dark_energy", 0, "#a78bfa"]];
+  const OMEGA_NOW = C.densityFractions(1);
+  const BX0 = Math.log10(C.INF_END), BX1 = Math.log10(C.fromNow(1e11));
+  const BUDGET_CAP = {
+    share: "Share of the total, log scale. Dark energy's share climbs as a⁴, then a³: it is there from the start, far too small to see on the bars.",
+    density: "Density relative to today's critical density, log scale. Λ is flat (constant from the start); radiation falls as a⁻⁴, matter as a⁻³.",
+  };
+  const pow10 = (x) => `10${String(Math.round(x)).replace(/./g, (c) => SUP[c])}`;
+  let budgetMode = "bars";
+  function budgetLogs(lt) {
+    const la = C.lnScaleFactor(10 ** lt) / Math.LN10;
+    const d = BUDGET.map(([, k, n]) => Math.log10(OMEGA_NOW[k]) - n * la);
+    if (budgetMode === "density") return d;
+    const m = Math.max(...d), tot = m + Math.log10(d.reduce((s, v) => s + 10 ** (v - m), 0));
+    return d.map((v) => v - tot);
+  }
+  function drawBudget() {
+    const cv = $("budget-curves"), r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    if (!r.width) return;
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+    const ctx = cv.getContext("2d"), W = r.width, H = r.height, L = 38, R = 6, T = 6, B = 18, S = 240;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const xs = Array.from({ length: S + 1 }, (_, i) => BX0 + ((BX1 - BX0) * i) / S), ys = xs.map(budgetLogs), all = ys.flat();
+    const y0 = Math.floor(Math.min(...all) / 10) * 10, y1 = Math.ceil(Math.max(...all) / 10) * 10;
+    const px = (x) => L + ((x - BX0) / (BX1 - BX0)) * (W - L - R), py = (y) => T + ((y1 - y) / (y1 - y0)) * (H - T - B);
+    ctx.font = "10px system-ui, sans-serif"; ctx.fillStyle = "#8590b8"; ctx.strokeStyle = "#1d2340"; ctx.lineWidth = 1;
+    const ystep = y1 - y0 > 80 ? 40 : y1 - y0 > 40 ? 20 : 10;
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    for (let y = Math.ceil(y0 / ystep) * ystep; y <= y1; y += ystep) {
+      ctx.beginPath(); ctx.moveTo(L, py(y)); ctx.lineTo(W - R, py(y)); ctx.stroke(); ctx.fillText(pow10(y), L - 4, py(y));
+    }
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    for (let x = -30; x <= BX1; x += 10) ctx.fillText(`${pow10(x)} s`, px(x), H - B + 4);
+    ctx.setLineDash([3, 3]); ctx.strokeStyle = "rgba(255,255,255,.5)";
+    ctx.beginPath(); ctx.moveTo(px(LOG_NOW), T); ctx.lineTo(px(LOG_NOW), H - B); ctx.stroke(); ctx.setLineDash([]);
+    BUDGET.forEach(([, , , col], j) => {
+      ctx.strokeStyle = col; ctx.lineWidth = 1.8; ctx.setLineDash(BUDGET[j][1] === "ordinary_matter" ? [6, 5] : []); ctx.beginPath();
+      xs.forEach((x, i) => (i ? ctx.lineTo(px(x), py(ys[i][j])) : ctx.moveTo(px(x), py(ys[i][j])))); ctx.stroke(); ctx.setLineDash([]);
+    });
+    const cx = Math.min(BX1, Math.max(BX0, logt)), now = budgetLogs(cx);
+    ctx.strokeStyle = "#7aa2ff"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(px(cx), T); ctx.lineTo(px(cx), H - B); ctx.stroke();
+    BUDGET.forEach(([, , , col], j) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(px(cx), py(now[j]), 3, 0, 6.283); ctx.fill(); });
+    const val = (v) => (budgetMode === "share" && v > -3 ? `${(100 * 10 ** v).toFixed(1)}%` : num(10 ** v));
+    const edge = logt < BX0 ? " Inflation, before 10⁻³² s, is off the left edge." : logt > BX1 ? " The far future is off the right edge." : "";
+    $("budget-cap").innerHTML = BUDGET.map(([n, , , col], j) => `<span><i style="background:${col}"></i>${n} ${val(now[j])}</span>`).join(" ")
+      + `<br>${BUDGET_CAP[budgetMode]} White dashes: today. Ordinary matter (green, dashed) runs just under dark matter, at a fixed ~⅕ of it.${edge}`;
+  }
+  for (const b of document.querySelectorAll("#budget-tabs [data-mode]")) b.addEventListener("click", () => {
+    budgetMode = b.dataset.mode;
+    for (const o of document.querySelectorAll("#budget-tabs [data-mode]")) o.classList.toggle("on", o === b);
+    $("bars").hidden = budgetMode !== "bars"; $("budget-curves").hidden = $("budget-cap").hidden = budgetMode === "bars";
+    updatePanel();
+  });
+  window.addEventListener("resize", () => budgetMode !== "bars" && drawBudget());
+
   // ---------- panel ----------
   function updatePanel() {
     const t = 10 ** logt, la = C.lnScaleFactor(t) / Math.LN10, a = 10 ** la, e = C.era(t), inflating = t < C.INF_END;
@@ -432,11 +491,12 @@
     const f = C.densityFractions(a);
     const rows = inflating ? [["Inflaton field", 1, "#c084fc"]]
       : [["Radiation", f.radiation, "#fbbf24"], ["Dark matter", f.dark_matter, "#3b82f6"],
-        ["Ordinary matter", f.ordinary_matter, "#93c5fd"], ["Dark energy Λ", f.dark_energy, "#a78bfa"]];
+        ["Ordinary matter", f.ordinary_matter, "#34d399"], ["Dark energy Λ", f.dark_energy, "#a78bfa"]];
     const q = C.deceleration(a);
     $("r-exp").textContent = inflating || q < 0 ? "Speeding up" : "Slowing down";
     $("r-q").textContent = inflating ? "≈ −1" : q.toFixed(2).replace("-", "−");
     $("bars").innerHTML = rows.map(([n, v, c]) => `<div class="bar"><span>${n}</span><div class="track"><div class="fill" style="width:${(100 * v).toFixed(1)}%;background:${c}"></div></div><span class="pct">${v < 0.001 && v > 0 ? "<0.1" : (100 * v).toFixed(1)}%</span></div>`).join("");
+    if (budgetMode !== "bars") drawBudget();
     if (inflating) {
       $("eq-h").innerHTML = "H ≈ constant, a ∝ e<sup>Ht</sup>";
       $("eq-t").textContent = "During inflation the Friedmann equation is dominated by the inflaton's vacuum-like energy.";
