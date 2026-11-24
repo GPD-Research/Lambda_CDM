@@ -416,7 +416,7 @@
   // ---------- energy budget as curves: log10 of each share, or of each density, against log10 t ----------
   // Densities are relative to today's critical density: Omega_i a^-n with n = 4, 3, 3, 0.
   const BUDGET = [["Radiation", "radiation", 4, "#fbbf24"], ["Dark matter", "dark_matter", 3, "#3b82f6"],
-    ["Ordinary matter", "ordinary_matter", 3, "#93c5fd"], ["Dark energy Λ", "dark_energy", 0, "#a78bfa"]];
+    ["Ordinary matter", "ordinary_matter", 3, "#34d399"], ["Dark energy Λ", "dark_energy", 0, "#a78bfa"]];
   const OMEGA_NOW = C.densityFractions(1);
   const BX0 = Math.log10(C.INF_END), BX1 = Math.log10(C.fromNow(1e11));
   const BUDGET_CAP = {
@@ -452,8 +452,8 @@
     ctx.setLineDash([3, 3]); ctx.strokeStyle = "rgba(255,255,255,.5)";
     ctx.beginPath(); ctx.moveTo(px(LOG_NOW), T); ctx.lineTo(px(LOG_NOW), H - B); ctx.stroke(); ctx.setLineDash([]);
     BUDGET.forEach(([, , , col], j) => {
-      ctx.strokeStyle = col; ctx.lineWidth = 1.8; ctx.beginPath();
-      xs.forEach((x, i) => (i ? ctx.lineTo(px(x), py(ys[i][j])) : ctx.moveTo(px(x), py(ys[i][j])))); ctx.stroke();
+      ctx.strokeStyle = col; ctx.lineWidth = 1.8; ctx.setLineDash(BUDGET[j][1] === "ordinary_matter" ? [6, 5] : []); ctx.beginPath();
+      xs.forEach((x, i) => (i ? ctx.lineTo(px(x), py(ys[i][j])) : ctx.moveTo(px(x), py(ys[i][j])))); ctx.stroke(); ctx.setLineDash([]);
     });
     const cx = Math.min(BX1, Math.max(BX0, logt)), now = budgetLogs(cx);
     ctx.strokeStyle = "#7aa2ff"; ctx.lineWidth = 1.5;
@@ -462,7 +462,7 @@
     const val = (v) => (budgetMode === "share" && v > -3 ? `${(100 * 10 ** v).toFixed(1)}%` : num(10 ** v));
     const edge = logt < BX0 ? " Inflation, before 10⁻³² s, is off the left edge." : logt > BX1 ? " The far future is off the right edge." : "";
     $("budget-cap").innerHTML = BUDGET.map(([n, , , col], j) => `<span><i style="background:${col}"></i>${n} ${val(now[j])}</span>`).join(" ")
-      + `<br>${BUDGET_CAP[budgetMode]} White dashes: today.${edge}`;
+      + `<br>${BUDGET_CAP[budgetMode]} White dashes: today. Ordinary matter (green, dashed) runs just under dark matter, at a fixed ~⅕ of it.${edge}`;
   }
   for (const b of document.querySelectorAll("#budget-tabs [data-mode]")) b.addEventListener("click", () => {
     budgetMode = b.dataset.mode;
@@ -491,7 +491,7 @@
     const f = C.densityFractions(a);
     const rows = inflating ? [["Inflaton field", 1, "#c084fc"]]
       : [["Radiation", f.radiation, "#fbbf24"], ["Dark matter", f.dark_matter, "#3b82f6"],
-        ["Ordinary matter", f.ordinary_matter, "#93c5fd"], ["Dark energy Λ", f.dark_energy, "#a78bfa"]];
+        ["Ordinary matter", f.ordinary_matter, "#34d399"], ["Dark energy Λ", f.dark_energy, "#a78bfa"]];
     const q = C.deceleration(a);
     $("r-exp").textContent = inflating || q < 0 ? "Speeding up" : "Slowing down";
     $("r-q").textContent = inflating ? "≈ −1" : q.toFixed(2).replace("-", "−");
